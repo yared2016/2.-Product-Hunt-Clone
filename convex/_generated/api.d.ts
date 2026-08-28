@@ -14,6 +14,8 @@ import type * as bookmarks from "../bookmarks.js";
 import type * as categories from "../categories.js";
 import type * as commentUpvotes from "../commentUpvotes.js";
 import type * as comments from "../comments.js";
+import type * as cronTasks from "../cronTasks.js";
+import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as launchSubscriptions from "../launchSubscriptions.js";
 import type * as notifications from "../notifications.js";
@@ -36,6 +38,8 @@ declare const fullApi: ApiFromModules<{
   categories: typeof categories;
   commentUpvotes: typeof commentUpvotes;
   comments: typeof comments;
+  cronTasks: typeof cronTasks;
+  crons: typeof crons;
   http: typeof http;
   launchSubscriptions: typeof launchSubscriptions;
   notifications: typeof notifications;

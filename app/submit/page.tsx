@@ -33,48 +33,9 @@ import {
   Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const AVAILABLE_CATEGORIES = [
-  "AI",
-  "Developer Tools",
-  "SaaS",
-  "Design Tools",
-  "Productivity",
-  "Marketing",
-  "Crypto",
-  "Open Source",
-];
-
-const STANDARD_ROLES = [
-  "CEO",
-  "Founder",
-  "Co-Founder",
-  "CTO",
-  "Lead Developer",
-  "Product Designer",
-  "Head of Product",
-  "Marketing & Growth",
-  "Maker",
-];
-
-// Helper to strictly validate website URLs
-const isValidHttpUrl = (str: string): boolean => {
-  const trimmed = str.trim();
-  if (!trimmed) return false;
-  try {
-    const urlString = trimmed.startsWith("http://") || trimmed.startsWith("https://") ? trimmed : `https://${trimmed}`;
-    const url = new URL(urlString);
-    const hostParts = url.hostname.split(".");
-    return (
-      (url.protocol === "http:" || url.protocol === "https:") &&
-      hostParts.length >= 2 &&
-      hostParts[hostParts.length - 1].length >= 2 &&
-      !url.hostname.includes(" ")
-    );
-  } catch {
-    return false;
-  }
-};
+import { BASE_DATE, CATEGORY_NAMES, STANDARD_MAKER_ROLES, ROUTES } from "@/lib/constants";
+import { isValidUrl, formatWebsiteUrl, getInitials } from "@/lib/formatters";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export default function SubmitPage() {
   const router = useRouter();
@@ -91,7 +52,7 @@ export default function SubmitPage() {
   const [pricing, setPricing] = useState<"free" | "freemium" | "paid">("freemium");
   const [selectedCategories, setSelectedCategories] = useState<string[]>(["AI"]);
   const [videoUrl, setVideoUrl] = useState("");
-  const [launchDate, setLaunchDate] = useState("2026-08-28");
+  const [launchDate, setLaunchDate] = useState<string>(BASE_DATE);
   const [isPromoted, setIsPromoted] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [promoDiscount, setPromoDiscount] = useState("");
@@ -229,7 +190,7 @@ export default function SubmitPage() {
     // 4. Strictly Validate Website URL
     if (!websiteUrl.trim()) {
       errors.websiteUrl = "Website URL is required.";
-    } else if (!isValidHttpUrl(websiteUrl)) {
+    } else if (!isValidUrl(websiteUrl)) {
       errors.websiteUrl = "Please enter a valid website URL (e.g. https://yourproduct.com).";
     }
 
@@ -268,11 +229,7 @@ export default function SubmitPage() {
       setIsSubmitting(true);
       setErrorMessage(null);
 
-      // Format Website URL with https:// if missing protocol
-      let formattedWebsiteUrl = websiteUrl.trim();
-      if (!formattedWebsiteUrl.startsWith("http://") && !formattedWebsiteUrl.startsWith("https://")) {
-        formattedWebsiteUrl = `https://${formattedWebsiteUrl}`;
-      }
+      const formattedWebsiteUrl = formatWebsiteUrl(websiteUrl);
 
       // 1. Upload Logo if selected
       let logoId: Id<"_storage"> | undefined;
@@ -706,7 +663,7 @@ export default function SubmitPage() {
                     </FieldLabel>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {AVAILABLE_CATEGORIES.map((cat) => {
+                    {CATEGORY_NAMES.map((cat) => {
                       const isSelected = selectedCategories.includes(cat);
                       return (
                         <button
@@ -835,7 +792,7 @@ export default function SubmitPage() {
                       <span className="text-xs font-medium text-foreground">Tagged Team ({taggedMakers.length}):</span>
                       <div className="flex flex-col gap-2">
                         {taggedMakers.map((m) => {
-                          const isCustom = !STANDARD_ROLES.includes(m.role);
+                          const isCustom = !STANDARD_MAKER_ROLES.includes(m.role as (typeof STANDARD_MAKER_ROLES)[number]);
 
                           return (
                             <div
@@ -844,10 +801,12 @@ export default function SubmitPage() {
                             >
                               {/* Maker Identity */}
                               <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <Avatar className="size-9 rounded-full border border-border bg-muted shrink-0">
-                                  {m.avatarUrl && <AvatarImage src={m.avatarUrl} alt={m.name} />}
-                                  <AvatarFallback className="text-xs font-semibold">{m.name[0]}</AvatarFallback>
-                                </Avatar>
+                                <UserAvatar
+                                  name={m.name}
+                                  src={m.avatarUrl}
+                                  size="sm"
+                                  className="size-9 rounded-full shrink-0"
+                                />
                                 <div className="flex flex-col min-w-0">
                                   <span className="text-xs sm:text-sm font-medium text-foreground truncate">
                                     {m.name}
@@ -869,7 +828,7 @@ export default function SubmitPage() {
                                     }}
                                     className="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-border bg-background text-foreground cursor-pointer focus:ring-1 focus:ring-orange-500 focus:outline-none"
                                   >
-                                    {STANDARD_ROLES.map((preset) => (
+                                    {STANDARD_MAKER_ROLES.map((preset) => (
                                       <option key={preset} value={preset}>
                                         {preset}
                                       </option>
@@ -921,14 +880,14 @@ export default function SubmitPage() {
                     <DatePickerField
                       value={launchDate}
                       onChange={setLaunchDate}
-                      minDate="2026-08-28"
+                      minDate={BASE_DATE}
                       allowFuture={true}
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setLaunchDate("2026-08-28")}
+                      onClick={() => setLaunchDate(BASE_DATE)}
                       className="text-xs font-normal cursor-pointer h-10 px-3.5"
                     >
                       <Calendar className="size-3.5 mr-1" />

@@ -29,6 +29,7 @@ import {
   Flame,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FAQ_ITEMS, ROUTES } from "@/lib/constants";
 
 export default function UpgradePage() {
   const { isSignedIn } = useAuth();
@@ -64,25 +65,6 @@ export default function UpgradePage() {
       setIsProcessing(false);
     }
   };
-
-  const FAQS = [
-    {
-      q: "What is the Pro Superuser plan?",
-      a: "The Pro Superuser plan ($99/month) is designed for serious makers, indie hackers, and startup founders who want maximum visibility for their products. Pro users can boost their launched products directly to the top of daily feeds and rankings with exclusive PRO SPONSORED badging.",
-    },
-    {
-      q: "How does the Top of Feed (Sponsored Boost) work?",
-      a: "When you boost a product, our ranking algorithm places your listing at the top slot of the daily leaderboard, homepage discovery feed, and category filters with a vibrant Pro aura, giving your launch 5-10x more visibility and community upvotes.",
-    },
-    {
-      q: "Can I launch products on the Free plan?",
-      a: "Yes! Every user on Launchpad starts on the Free tier ($0) and can create unlimited product launches, join community discussions, and earn badges. Pro is for creators seeking an algorithmic visibility superpower.",
-    },
-    {
-      q: "How does billing work?",
-      a: "Subscriptions are billed monthly at $99/month via Clerk's secure billing engine. You can upgrade, change payment methods, or cancel anytime with one click.",
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col w-full">
@@ -366,7 +348,7 @@ export default function UpgradePage() {
           </div>
 
           <div className="flex flex-col gap-3">
-            {FAQS.map((faq, idx) => (
+            {FAQ_ITEMS.map((faq, idx) => (
               <Card
                 key={idx}
                 onClick={() => setOpenFaq(openFaq === idx ? null : idx)}

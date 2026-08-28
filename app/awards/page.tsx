@@ -8,8 +8,10 @@ import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UserAvatar } from "@/components/UserAvatar";
+import { PricingBadge } from "@/components/PricingBadge";
+import { ROUTES } from "@/lib/constants";
 import {
   Trophy,
   Medal,
@@ -24,15 +26,6 @@ export default function AwardsPage() {
   const router = useRouter();
 
   const leaderboard = useQuery(api.awards.getLeaderboard, { limit: 20 });
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-  };
 
   const top3 = leaderboard?.slice(0, 3) ?? [];
   const rest = leaderboard?.slice(3) ?? [];
@@ -79,28 +72,26 @@ export default function AwardsPage() {
                     <span>#2 Product of the Day</span>
                   </span>
 
-                  <Avatar className="size-16 sm:size-20 rounded-2xl border-2 border-border shadow-sm bg-muted shrink-0 transition-transform duration-200 group-hover:scale-105">
-                    {top3[1].logoUrl && (
-                      <AvatarImage src={top3[1].logoUrl} alt={top3[1].name} className="object-cover" />
-                    )}
-                    <AvatarFallback className="rounded-2xl font-semibold text-xl bg-muted text-foreground">
-                      {getInitials(top3[1].name)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    name={top3[1].name}
+                    src={top3[1].logoUrl}
+                    size="xl"
+                    className="size-16 sm:size-20 rounded-2xl border-2 border-border shadow-sm shrink-0 transition-transform duration-200 group-hover:scale-105"
+                  />
 
                   <div className="flex flex-col gap-1.5 w-full flex-1 justify-center">
-                    <Link href={`/products/${top3[1].slug}`} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+                    <Link href={ROUTES.PRODUCT(top3[1].slug)} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                       <h3 className="font-semibold text-base sm:text-lg text-foreground tracking-tight line-clamp-1">{top3[1].name}</h3>
                     </Link>
                     <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed px-1 font-normal">{top3[1].tagline}</p>
                   </div>
 
-                    <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/60 w-full">
+                  <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/60 w-full">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400 font-mono font-medium text-xs">
                       <Flame className="size-3.5 text-orange-500 fill-orange-500 shrink-0" />
                       <span>{top3[1].upvoteCount} upvotes</span>
                     </div>
-                    <Link href={`/products/${top3[1].slug}`}>
+                    <Link href={ROUTES.PRODUCT(top3[1].slug)}>
                       <Button variant="outline" size="sm" className="min-h-[36px] px-3.5 font-medium text-xs hover:border-orange-500/50 hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 transition-all active:scale-95 cursor-pointer">
                         <span>View</span>
                         <ArrowRight className="size-3.5 ml-1" />
@@ -120,17 +111,15 @@ export default function AwardsPage() {
                     <span>#1 Product of the Day</span>
                   </span>
 
-                  <Avatar className="size-18 sm:size-22 rounded-2xl border-2 border-amber-500/60 shadow-md bg-muted shrink-0 transition-transform duration-200 group-hover:scale-105">
-                    {top3[0].logoUrl && (
-                      <AvatarImage src={top3[0].logoUrl} alt={top3[0].name} className="object-cover" />
-                    )}
-                    <AvatarFallback className="rounded-2xl font-semibold text-2xl bg-muted text-foreground">
-                      {getInitials(top3[0].name)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    name={top3[0].name}
+                    src={top3[0].logoUrl}
+                    size="xl"
+                    className="size-18 sm:size-22 rounded-2xl border-2 border-amber-500/60 shadow-md shrink-0 transition-transform duration-200 group-hover:scale-105"
+                  />
 
                   <div className="flex flex-col gap-1.5 w-full flex-1 justify-center">
-                    <Link href={`/products/${top3[0].slug}`}>
+                    <Link href={ROUTES.PRODUCT(top3[0].slug)}>
                       <h3 className="font-semibold text-lg sm:text-xl text-foreground tracking-tight line-clamp-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{top3[0].name}</h3>
                     </Link>
                     <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed px-1 sm:px-2 font-normal">{top3[0].tagline}</p>
@@ -141,7 +130,7 @@ export default function AwardsPage() {
                       <Flame className="size-4 text-orange-500 fill-orange-500 shrink-0" />
                       <span>{top3[0].upvoteCount} upvotes</span>
                     </div>
-                    <Link href={`/products/${top3[0].slug}`}>
+                    <Link href={ROUTES.PRODUCT(top3[0].slug)}>
                       <Button size="sm" className="bg-gradient-to-r from-orange-500 via-[#FF6154] to-red-500 hover:from-orange-600 hover:to-[#FF6154]/90 text-white min-h-[36px] px-4 sm:px-5 font-medium text-xs shadow-xs hover:shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer">
                         <span>View</span>
                         <ArrowRight className="size-3.5 ml-1" />
@@ -161,17 +150,15 @@ export default function AwardsPage() {
                     <span>#3 Product of the Day</span>
                   </span>
 
-                  <Avatar className="size-16 sm:size-20 rounded-2xl border-2 border-border shadow-sm bg-muted shrink-0 transition-transform duration-200 group-hover:scale-105">
-                    {top3[2].logoUrl && (
-                      <AvatarImage src={top3[2].logoUrl} alt={top3[2].name} className="object-cover" />
-                    )}
-                    <AvatarFallback className="rounded-2xl font-semibold text-xl bg-muted text-foreground">
-                      {getInitials(top3[2].name)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    name={top3[2].name}
+                    src={top3[2].logoUrl}
+                    size="xl"
+                    className="size-16 sm:size-20 rounded-2xl border-2 border-border shadow-sm shrink-0 transition-transform duration-200 group-hover:scale-105"
+                  />
 
                   <div className="flex flex-col gap-1.5 w-full flex-1 justify-center">
-                    <Link href={`/products/${top3[2].slug}`}>
+                    <Link href={ROUTES.PRODUCT(top3[2].slug)} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                       <h3 className="font-semibold text-base sm:text-lg text-foreground tracking-tight line-clamp-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{top3[2].name}</h3>
                     </Link>
                     <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed px-1 font-normal">{top3[2].tagline}</p>
@@ -182,7 +169,7 @@ export default function AwardsPage() {
                       <Flame className="size-3.5 text-orange-500 fill-orange-500 shrink-0" />
                       <span>{top3[2].upvoteCount} upvotes</span>
                     </div>
-                    <Link href={`/products/${top3[2].slug}`}>
+                    <Link href={ROUTES.PRODUCT(top3[2].slug)}>
                       <Button variant="outline" size="sm" className="min-h-[36px] px-3.5 font-medium text-xs hover:border-orange-500/50 hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 transition-all active:scale-95 cursor-pointer">
                         <span>View</span>
                         <ArrowRight className="size-3.5 ml-1" />
@@ -221,21 +208,17 @@ export default function AwardsPage() {
                     </span>
 
                     {/* Square Logo */}
-                    <div className="size-11 sm:size-12 rounded-xl border border-border bg-muted shrink-0 overflow-hidden flex items-center justify-center group-hover/item:scale-105 transition-transform duration-200 shadow-2xs">
-                      {p.logoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.logoUrl} alt={p.name} className="size-full object-cover" />
-                      ) : (
-                        <span className="text-xs font-semibold text-foreground font-mono">
-                          {getInitials(p.name)}
-                        </span>
-                      )}
-                    </div>
+                    <UserAvatar
+                      name={p.name}
+                      src={p.logoUrl}
+                      size="md"
+                      className="size-11 sm:size-12 rounded-xl shrink-0 group-hover/item:scale-105 transition-transform duration-200"
+                    />
 
                     {/* Info */}
                     <div className="flex flex-col min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Link href={`/products/${p.slug}`}>
+                        <Link href={ROUTES.PRODUCT(p.slug)}>
                           <span className="font-medium sm:font-semibold text-sm text-foreground truncate hover:underline group-hover/item:text-orange-600 dark:group-hover/item:text-orange-400 transition-colors">
                             {p.name}
                           </span>
@@ -260,7 +243,7 @@ export default function AwardsPage() {
                     </div>
 
                     <Link
-                      href={`/products/${p.slug}`}
+                      href={ROUTES.PRODUCT(p.slug)}
                       className="size-8 rounded-xl flex items-center justify-center text-muted-foreground bg-muted/40 border border-border/40 group-hover/item:border-transparent group-hover/item:bg-gradient-to-r group-hover/item:from-orange-500 group-hover/item:to-[#FF6154] group-hover/item:text-white hover:!from-orange-600 hover:!to-[#FF6154] hover:!text-white hover:scale-110 active:scale-90 transition-all cursor-pointer shadow-2xs group-hover/item:shadow-xs shrink-0"
                     >
                       <ArrowRight className="size-4 transition-transform group-hover/item:translate-x-0.5 text-inherit" />

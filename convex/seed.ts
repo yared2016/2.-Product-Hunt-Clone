@@ -1,4 +1,4 @@
-﻿import { mutation } from "./_generated/server";
+import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
@@ -629,7 +629,7 @@ export const seedFullWorld = mutation({
         topics: p.topics,
         submitterId,
         makerIds,
-        status: ((p as any).status || "launched") as "launched" | "scheduled" | "draft",
+        status: ("status" in p && p.status ? p.status : "launched") as "launched" | "scheduled" | "draft",
         launchDate: p.launchDate,
         upvoteCount: p.upvoteCount,
         commentCount: p.commentCount,

@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useAuth } from "@clerk/nextjs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { formatRelativeTime } from "@/lib/formatters";
+import { ROUTES } from "@/lib/constants";
 import {
   ChevronUp,
   ChevronDown,
@@ -79,24 +81,9 @@ export function CommentItem({
   const isAuthor = Boolean(currentUserId && comment.authorId === currentUserId);
   const replyCount = comment.replies?.length ?? 0;
 
-  const formatRelativeTime = (timestamp: number) => {
-    const diffSec = Math.floor((Date.now() - timestamp) / 1000);
-    if (diffSec < 60) return "just now";
-    const diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const diffHours = Math.floor(diffMin / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return new Date(timestamp).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const handleUpvote = async () => {
+  const handleUpvote = useCallback(async () => {
     if (!isSignedIn) {
-      router.push("/sign-in");
+      router.push(ROUTES.SIGN_IN);
       return;
     }
 
@@ -108,9 +95,9 @@ export function CommentItem({
     } finally {
       setIsUpvoting(false);
     }
-  };
+  }, [isSignedIn, router, toggleCommentUpvote, comment._id]);
 
-  const handleTogglePin = async () => {
+  const handleTogglePin = useCallback(async () => {
     try {
       setIsPinning(true);
       await togglePin({ commentId: comment._id });
@@ -119,11 +106,11 @@ export function CommentItem({
     } finally {
       setIsPinning(false);
     }
-  };
+  }, [togglePin, comment._id]);
 
-  const handleReplySubmit = async () => {
+  const handleReplySubmit = useCallback(async () => {
     if (!isSignedIn) {
-      router.push("/sign-in");
+      router.push(ROUTES.SIGN_IN);
       return;
     }
 
@@ -144,9 +131,9 @@ export function CommentItem({
     } finally {
       setIsSubmittingReply(false);
     }
-  };
+  }, [isSignedIn, router, replyText, createComment, productId, comment._id]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!window.confirm("Are you sure you want to delete this comment?")) return;
 
     try {
@@ -157,16 +144,7 @@ export function CommentItem({
     } finally {
       setIsDeleting(false);
     }
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-  };
+  }, [deleteComment, comment._id]);
 
   return (
     <div
@@ -184,14 +162,12 @@ export function CommentItem({
 
       <div className="flex items-start gap-3">
         {/* Author Avatar */}
-        <Avatar className="size-8 sm:size-9 rounded-full border border-border shrink-0 mt-0.5 bg-muted">
-          {comment.author.avatarUrl && (
-            <AvatarImage src={comment.author.avatarUrl} alt={comment.author.name} />
-          )}
-          <AvatarFallback className="text-[10px] font-semibold">
-            {getInitials(comment.author.name)}
-          </AvatarFallback>
-        </Avatar>
+        <UserAvatar
+          name={comment.author.name}
+          src={comment.author.avatarUrl}
+          size="sm"
+          className="size-8 sm:size-9 rounded-full mt-0.5"
+        />
 
         {/* Comment Content */}
         <div className="flex flex-col gap-1.5 flex-1 min-w-0">
@@ -243,92 +219,87 @@ export function CommentItem({
               <span>{comment.upvoteCount > 0 ? comment.upvoteCount : "Upvote"}</span>
             </button>
 
-            {/* Reply Trigger - Only available for other users' comments (cannot reply to own comment) */}
+            {/* Reply Trigger */}
             {!isAuthor && (
               <button
                 type="button"
                 onClick={() => setIsReplying(!isReplying)}
-                className={cn(
-                  "inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-all cursor-pointer select-none min-h-[36px] active:scale-95",
-                  isReplying
-                    ? "bg-[#FF6154]/10 text-[#FF6154] font-medium"
-                    : "text-muted-foreground hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-500/10 font-normal"
-                )}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-orange-600 dark:hover:text-orange-400 px-2.5 py-1.5 rounded-lg hover:bg-orange-500/10 transition-colors cursor-pointer min-h-[36px] font-normal"
               >
-                <MessageSquare className="size-3 shrink-0" />
-                <span>{isReplying ? "Cancel" : "Reply"}</span>
+                <MessageSquare className="size-3.5 shrink-0" />
+                <span>Reply</span>
               </button>
             )}
 
-            {/* Collapse/Expand Replies Toggle Button (Minimize / Maximize) */}
-            {replyCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowReplies(!showReplies)}
-                className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg text-muted-foreground hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-500/10 transition-all cursor-pointer select-none min-h-[36px]"
-                title={showReplies ? "Minimize replies" : "Maximize replies"}
-              >
-                {showReplies ? (
-                  <>
-                    <ChevronDown className="size-3.5 text-muted-foreground" />
-                    <span>Hide {replyCount} {replyCount === 1 ? "reply" : "replies"}</span>
-                  </>
-                ) : (
-                  <>
-                    <ChevronRight className="size-3.5 text-orange-500" />
-                    <span className="text-orange-600 dark:text-orange-400 font-medium">
-                      View {replyCount} {replyCount === 1 ? "reply" : "replies"}
-                    </span>
-                  </>
-                )}
-              </button>
-            )}
-
-            {/* Pin Trigger (Product Owner Only) */}
+            {/* Pin Action (For product owner only on top-level comments) */}
             {isProductOwner && !comment.parentId && (
               <button
                 type="button"
                 onClick={handleTogglePin}
                 disabled={isPinning}
                 className={cn(
-                  "inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-all cursor-pointer select-none min-h-[36px] active:scale-95",
+                  "inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer min-h-[36px] font-normal",
                   comment.isPinned
-                    ? "text-orange-600 font-semibold"
+                    ? "text-orange-600 bg-orange-500/10"
                     : "text-muted-foreground hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-500/10"
                 )}
                 title={comment.isPinned ? "Unpin comment" : "Pin comment to top"}
               >
-                <Pin className={cn("size-3 shrink-0 rotate-45", comment.isPinned && "fill-current")} />
-                <span>{comment.isPinned ? "Unpin" : "Pin"}</span>
+                <Pin className={cn("size-3.5 shrink-0", comment.isPinned && "fill-current")} />
+                <span className="hidden sm:inline">{comment.isPinned ? "Unpin" : "Pin"}</span>
               </button>
             )}
 
-            {/* Delete / Moderate button (Author or Product Owner) */}
-            {(isAuthor || isProductOwner) && (
+            {/* Delete (author only) */}
+            {isAuthor && (
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-lg text-red-500/70 hover:text-red-600 hover:bg-red-500/10 transition-colors cursor-pointer select-none ml-auto min-h-[36px]"
-                title={isProductOwner && !isAuthor ? "Moderate / Delete Comment" : "Delete Comment"}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive px-2.5 py-1.5 rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer min-h-[36px] font-normal opacity-70 hover:opacity-100"
+                title="Delete comment"
               >
-                <Trash2 className="size-3" />
-                <span className="hidden sm:inline">
-                  {isProductOwner && !isAuthor ? "Moderate" : "Delete"}
-                </span>
+                <Trash2 className="size-3.5 shrink-0" />
+                <span className="hidden sm:inline">Delete</span>
+              </button>
+            )}
+
+            {/* Toggle Nested Replies */}
+            {replyCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowReplies(!showReplies)}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer min-h-[36px] font-normal ml-auto"
+              >
+                {showReplies ? (
+                  <>
+                    <ChevronDown className="size-3.5 shrink-0" />
+                    <span>Hide {replyCount} {replyCount === 1 ? "reply" : "replies"}</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight className="size-3.5 shrink-0" />
+                    <span>Show {replyCount} {replyCount === 1 ? "reply" : "replies"}</span>
+                  </>
+                )}
               </button>
             )}
           </div>
 
-          {/* Inline Reply Form */}
+          {/* Inline Reply Input Box */}
           {isReplying && (
-            <div className="mt-3 flex flex-col gap-2 p-3 rounded-xl border border-border/80 bg-muted/20">
+            <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-border/60">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CornerDownRight className="size-3.5 text-orange-500" />
+                <span>
+                  Replying to <span className="font-semibold text-foreground">@{comment.author.username}</span>
+                </span>
+              </div>
               <Textarea
-                placeholder={`Reply to @${comment.author.username}...`}
-                rows={2}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
-                className="text-xs bg-background"
+                placeholder={`Write a thoughtful reply to @${comment.author.username}...`}
+                className="min-h-[80px] text-xs resize-y"
                 autoFocus
               />
               <div className="flex items-center justify-end gap-2">
@@ -336,45 +307,44 @@ export function CommentItem({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="min-h-[36px] text-xs"
                   onClick={() => {
                     setIsReplying(false);
                     setReplyText("");
                   }}
+                  className="text-xs min-h-[36px] font-normal cursor-pointer"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="button"
                   size="sm"
-                  disabled={isSubmittingReply || !replyText.trim()}
                   onClick={handleReplySubmit}
-                  className="min-h-[36px] text-xs bg-[#FF6154] hover:bg-[#FF6154]/90 text-white font-medium active:scale-95"
+                  disabled={isSubmittingReply || !replyText.trim()}
+                  className="bg-[#FF6154] hover:bg-[#FF6154]/90 text-white text-xs min-h-[36px] font-medium cursor-pointer"
                 >
-                  <CornerDownRight data-icon="inline-start" className="size-3" />
-                  <span>Post Reply</span>
+                  {isSubmittingReply ? "Posting..." : "Post Reply"}
                 </Button>
               </div>
             </div>
           )}
+
+          {/* Nested Replies Rendering */}
+          {showReplies && replyCount > 0 && (
+            <div className="flex flex-col gap-2 mt-2 pl-3 sm:pl-4 border-l-2 border-border/60">
+              {comment.replies?.map((reply) => (
+                <CommentItem
+                  key={reply._id}
+                  comment={reply}
+                  productId={productId}
+                  currentUserId={currentUserId}
+                  isProductOwner={isProductOwner}
+                  upvotedCommentIds={upvotedCommentIds}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Nested Replies with Minimize / Maximize toggle */}
-      {comment.replies && comment.replies.length > 0 && showReplies && (
-        <div className="pl-4 sm:pl-8 ml-2 sm:ml-4 border-l-2 border-border/60 flex flex-col gap-1 mt-1 animate-in fade-in-0 duration-200">
-          {comment.replies.map((reply) => (
-            <CommentItem
-              key={reply._id}
-              comment={reply}
-              productId={productId}
-              currentUserId={currentUserId}
-              isProductOwner={isProductOwner}
-              upvotedCommentIds={upvotedCommentIds}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

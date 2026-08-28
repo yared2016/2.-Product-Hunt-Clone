@@ -12,18 +12,27 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BASE_DATE } from "@/lib/constants";
 
-interface DateOption {
+export interface DateOption {
   key: string;
   label: string;
   sublabel: string;
 }
 
-interface DateSelectDropdownProps {
+export const DEFAULT_DATE_PRESETS: DateOption[] = [
+  { key: BASE_DATE, label: "Today", sublabel: "Friday" },
+  { key: "2026-08-27", label: "Yesterday", sublabel: "Thursday" },
+  { key: "2026-08-26", label: "Wednesday", sublabel: "Aug 26" },
+  { key: "2026-08-25", label: "Tuesday", sublabel: "Aug 25" },
+  { key: "2026-08-21", label: "Last Week", sublabel: "Aug 21" },
+];
+
+export interface DateSelectDropdownProps {
   selectedDate: string; // "YYYY-MM-DD"
   onSelectDate: (date: string) => void;
-  presets: DateOption[];
-  maxDate?: string; // "YYYY-MM-DD", defaults to "2026-08-28"
+  presets?: DateOption[];
+  maxDate?: string; // "YYYY-MM-DD", defaults to BASE_DATE
   align?: "left" | "right";
   title?: string;
 }
@@ -31,8 +40,8 @@ interface DateSelectDropdownProps {
 export function DateSelectDropdown({
   selectedDate,
   onSelectDate,
-  presets,
-  maxDate = "2026-08-28",
+  presets = DEFAULT_DATE_PRESETS,
+  maxDate = BASE_DATE,
   align = "left",
   title = "Select Date",
 }: DateSelectDropdownProps) {

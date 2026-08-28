@@ -7,12 +7,14 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CommentItem, CommentNode } from "@/components/CommentItem";
+import { UserAvatar } from "@/components/UserAvatar";
+import { EmptyState } from "@/components/EmptyState";
+import { ROUTES } from "@/lib/constants";
 import { MessageSquare, Send, Sparkles, Flame, Clock, ArrowDownUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +52,7 @@ export function CommentSection({
 
   const handlePostComment = async () => {
     if (!isSignedIn) {
-      router.push("/sign-in");
+      router.push(ROUTES.SIGN_IN);
       return;
     }
 
@@ -128,15 +130,6 @@ export function CommentSection({
     });
   }
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-  };
-
   const SORT_OPTIONS: Array<{ key: CommentSortType; label: string; icon: typeof Flame }> = [
     { key: "top", label: "Top", icon: Flame },
     { key: "latest", label: "Latest", icon: Clock },
@@ -184,14 +177,12 @@ export function CommentSection({
 
       {/* New Comment Input Box */}
       <div className="flex items-start gap-3">
-        <Avatar className="size-9 rounded-full border border-border shrink-0 mt-0.5 bg-muted">
-          {clerkUser?.imageUrl && (
-            <AvatarImage src={clerkUser.imageUrl} alt={clerkUser.fullName || "User"} />
-          )}
-          <AvatarFallback className="text-xs font-semibold">
-            {clerkUser?.fullName ? getInitials(clerkUser.fullName) : "ME"}
-          </AvatarFallback>
-        </Avatar>
+        <UserAvatar
+          name={clerkUser?.fullName || "User"}
+          src={clerkUser?.imageUrl}
+          size="sm"
+          className="size-9 rounded-full shrink-0 mt-0.5"
+        />
 
         <div className="flex flex-col gap-2.5 flex-1 min-w-0">
           <div className="flex flex-col gap-2 p-3 rounded-2xl border border-border/80 bg-muted/20 focus-within:border-orange-500/50 focus-within:ring-2 focus-within:ring-orange-500/10 transition-all">
@@ -243,13 +234,11 @@ export function CommentSection({
             </div>
           </div>
         ) : commentTree.length === 0 ? (
-          <div className="py-12 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
-            <MessageSquare className="size-8 opacity-40 text-orange-500" />
-            <h4 className="font-semibold text-sm text-foreground">No comments yet</h4>
-            <p className="text-xs max-w-sm">
-              Be the first to share your thoughts, ask questions, or congratulate the makers of {productName}!
-            </p>
-          </div>
+          <EmptyState
+            icon={MessageSquare}
+            title="No comments yet"
+            description={`Be the first to share your thoughts, ask questions, or congratulate the makers of ${productName}!`}
+          />
         ) : (
           commentTree.map((comment) => (
             <CommentItem

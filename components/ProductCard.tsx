@@ -1,29 +1,32 @@
 "use client";
 
+import React, { memo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BookmarkButton } from "@/components/BookmarkButton";
 import { NotifyMeButton } from "@/components/NotifyMeButton";
+import { UserAvatar } from "@/components/UserAvatar";
+import { PricingBadge } from "@/components/PricingBadge";
+import { ProBadge } from "@/components/ProBadge";
+import { ROUTES, PricingType } from "@/lib/constants";
 import {
   ChevronUp,
   MessageSquare,
   Sparkles,
-  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface ProductCardProps {
+export interface ProductCardProps {
   product: {
     _id: Id<"products">;
     name: string;
     slug: string;
     tagline: string;
-    pricing: "free" | "freemium" | "paid";
+    pricing: PricingType | string;
     categories: string[];
     upvoteCount: number;
     commentCount: number;
@@ -40,7 +43,7 @@ interface ProductCardProps {
   onUpvote?: (e: React.MouseEvent) => void;
 }
 
-export function ProductCard({
+export const ProductCard = memo(function ProductCard({
   product,
   rank,
   hasUpvoted = false,
@@ -48,56 +51,22 @@ export function ProductCard({
   onUpvote,
 }: ProductCardProps) {
   const router = useRouter();
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-  };
-
-  const getPricingBadge = (pricing: string) => {
-    switch (pricing) {
-      case "free":
-        return (
-          <Badge variant="secondary" className="text-[10px] py-0 px-1.5 font-normal">
-            Free
-          </Badge>
-        );
-      case "freemium":
-        return (
-          <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal text-muted-foreground">
-            Freemium
-          </Badge>
-        );
-      case "paid":
-        return (
-          <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal text-muted-foreground">
-            Paid
-          </Badge>
-        );
-      default:
-        return null;
-    }
-  };
-
   const isScheduled = product.status === "scheduled";
+  const productUrl = ROUTES.PRODUCT(product.slug);
 
-  const handleCardClick = (e: React.MouseEvent) => {
+  const handleCardClick = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest("button") || target.closest("a") || target.closest("[data-no-card-click]")) {
       return;
     }
-    router.push(`/products/${product.slug}`);
-  };
+    router.push(productUrl);
+  }, [router, productUrl]);
 
-  const handleCommentClick = (e: React.MouseEvent) => {
+  const handleCommentClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    router.push(`/products/${product.slug}#comments`);
-  };
+    router.push(`${productUrl}#comments`);
+  }, [router, productUrl]);
 
   return (
     <div className="w-full">
@@ -122,23 +91,23 @@ export function ProductCard({
 
             {/* Product Logo Link */}
             <Link
-              href={`/products/${product.slug}`}
+              href={productUrl}
               onClick={(e) => e.stopPropagation()}
               className="shrink-0 group/logo"
             >
-              <Avatar className="size-11 sm:size-13 rounded-xl sm:rounded-2xl border border-border/80 shadow-2xs group-hover/logo:scale-105 transition-transform bg-gradient-to-br from-orange-500/10 to-amber-500/10">
-                {product.logoUrl && <AvatarImage src={product.logoUrl} alt={product.name} />}
-                <AvatarFallback className="rounded-xl sm:rounded-2xl font-semibold text-xs sm:text-sm bg-muted text-foreground">
-                  {getInitials(product.name)}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                name={product.name}
+                src={product.logoUrl}
+                size="lg"
+                className="size-11 sm:size-13 rounded-xl sm:rounded-2xl border-border/80 group-hover/logo:scale-105 transition-transform bg-gradient-to-br from-orange-500/10 to-amber-500/10"
+              />
             </Link>
 
             {/* Text Info */}
             <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0 flex-1">
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <Link
-                  href={`/products/${product.slug}`}
+                  href={productUrl}
                   onClick={(e) => e.stopPropagation()}
                   className="font-medium sm:font-semibold text-sm sm:text-base text-foreground group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors tracking-tight truncate hover:underline"
                 >
@@ -147,10 +116,7 @@ export function ProductCard({
 
                 {/* Pro Sponsored Boost Badge */}
                 {product.isPromoted && (
-                  <Badge className="text-[10px] py-0 px-2 gap-1 font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white border-0 shadow-2xs animate-in fade-in-0">
-                    <Zap className="size-2.5 fill-current" />
-                    <span>{product.promoBadgeText || "PRO SPONSORED"}</span>
-                  </Badge>
+                  <ProBadge variant="sponsored" text={product.promoBadgeText} />
                 )}
 
                 {product.isFeatured && (
@@ -165,7 +131,7 @@ export function ProductCard({
                   </Badge>
                 )}
                 <span className="hidden sm:inline-flex">
-                  {getPricingBadge(product.pricing)}
+                  <PricingBadge pricing={product.pricing} />
                 </span>
               </div>
 
@@ -175,76 +141,82 @@ export function ProductCard({
 
               {/* Categories, Comments & Bookmark */}
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap pt-0.5">
-                {product.categories.slice(0, 2).map((cat) => (
-                  <Link
-                    key={cat}
-                    href={`/categories/${cat.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="cursor-pointer"
-                  >
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] py-0 px-1.5 font-normal bg-muted/80 text-muted-foreground hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-500/10 transition-colors cursor-pointer"
+                <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+                  {product.categories.slice(0, 2).map((cat) => (
+                    <Link
+                      key={cat}
+                      href={ROUTES.CATEGORIES(cat.toLowerCase().replace(/[^a-z0-9]+/g, "-"))}
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      {cat}
-                    </Badge>
-                  </Link>
-                ))}
-                {product.categories.length > 2 && (
-                  <span className="text-[10px] text-muted-foreground font-mono font-normal">
-                    +{product.categories.length - 2}
-                  </span>
-                )}
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] sm:text-xs py-0 px-1.5 font-normal text-muted-foreground hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/30 transition-colors cursor-pointer"
+                      >
+                        {cat}
+                      </Badge>
+                    </Link>
+                  ))}
+                  {product.categories.length > 2 && (
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      +{product.categories.length - 2}
+                    </span>
+                  )}
+                </div>
 
-                <div className="flex items-center gap-1.5 ml-auto sm:ml-1 pl-1">
-                  {/* Interactive Clickable Comment Button */}
-                  <button
-                    type="button"
-                    onClick={handleCommentClick}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono text-muted-foreground hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-500/10 dark:hover:bg-orange-500/15 border border-transparent hover:border-orange-500/30 transition-all cursor-pointer select-none active:scale-95 group/comment"
-                    title={`View ${product.commentCount} discussion comments`}
-                  >
-                    <MessageSquare className="size-3.5 group-hover/comment:text-orange-600 dark:group-hover/comment:text-orange-400 transition-colors" />
-                    <span className="font-medium">{product.commentCount}</span>
-                  </button>
+                <span className="text-border text-xs hidden xs:inline">•</span>
 
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <BookmarkButton productId={product._id} />
-                  </div>
+                {/* Comment Counter Button */}
+                <button
+                  type="button"
+                  onClick={handleCommentClick}
+                  className="inline-flex items-center gap-1 text-[11px] sm:text-xs text-muted-foreground hover:text-orange-600 dark:hover:text-orange-400 transition-colors cursor-pointer group/comment p-0.5 rounded"
+                  title={`${product.commentCount} discussions`}
+                  aria-label={`${product.commentCount} comments on ${product.name}`}
+                >
+                  <MessageSquare className="size-3 sm:size-3.5 group-hover/comment:scale-110 transition-transform" />
+                  <span className="font-medium font-mono">{product.commentCount}</span>
+                </button>
+
+                {/* Bookmark Button */}
+                <div onClick={(e) => e.stopPropagation()} data-no-card-click>
+                  <BookmarkButton productId={product._id} />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Upvote Button OR NotifyMe Button */}
-          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+          {/* Right Column: Upvote Button / Notify Me */}
+          <div className="flex items-center gap-2 shrink-0 pl-1">
             {isScheduled ? (
-              <NotifyMeButton productId={product._id} />
+              <div onClick={(e) => e.stopPropagation()} data-no-card-click>
+                <NotifyMeButton productId={product._id} />
+              </div>
             ) : (
               <Button
                 variant={hasUpvoted ? "default" : "outline"}
                 size="sm"
+                onClick={onUpvote}
                 disabled={isUpvoting}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onUpvote?.(e);
-                }}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 sm:gap-1 h-12 sm:h-14 w-12 sm:w-14 rounded-xl sm:rounded-2xl border transition-all cursor-pointer select-none active:scale-90",
+                  "flex flex-col items-center justify-center min-w-[50px] sm:min-w-[56px] h-13 sm:h-14 p-0 rounded-xl transition-all cursor-pointer select-none active:scale-95 group/btn",
                   hasUpvoted
-                    ? "bg-[#FF6154] text-white border-[#FF6154] hover:bg-[#FF6154]/90 shadow-xs"
-                    : "border-border/80 hover:border-orange-500/50 hover:bg-orange-500/5 hover:text-orange-600 dark:hover:text-orange-400 bg-background/50"
+                    ? "bg-[#FF6154] text-white hover:bg-[#FF6154]/90 border-transparent shadow-[0_2px_8px_rgba(255,97,84,0.3)] ring-2 ring-[#FF6154]/20"
+                    : "border-border/80 hover:border-orange-500/60 hover:bg-orange-500/5 hover:text-orange-600 dark:hover:text-orange-400"
                 )}
+                aria-label={`Upvote ${product.name} (Current: ${product.upvoteCount})`}
               >
                 <ChevronUp
-                  data-icon="inline-start"
                   className={cn(
-                    "size-4 sm:size-4.5 shrink-0 transition-transform",
-                    isUpvoting && "animate-pulse"
+                    "size-4.5 sm:size-5 transition-transform group-hover/btn:-translate-y-0.5",
+                    hasUpvoted ? "text-white stroke-[2.5]" : "text-muted-foreground group-hover/btn:text-orange-500 stroke-[2]"
                   )}
                 />
-                <span className="font-semibold text-[11px] sm:text-xs tracking-tight font-mono">
+                <span
+                  className={cn(
+                    "text-xs sm:text-xs font-bold leading-none font-mono",
+                    hasUpvoted ? "text-white" : "text-foreground group-hover/btn:text-orange-600 dark:group-hover/btn:text-orange-400"
+                  )}
+                >
                   {product.upvoteCount}
                 </span>
               </Button>
@@ -254,4 +226,4 @@ export function ProductCard({
       </Card>
     </div>
   );
-}
+});

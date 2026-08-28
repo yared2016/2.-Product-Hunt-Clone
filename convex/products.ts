@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getOrCreateCurrentUser, getCurrentUserOrNull } from "./authHelper";
 import { Id } from "./_generated/dataModel";
+import { BASE_DATE, PROMO_BADGE_DEFAULT } from "./constants";
 
 export const listByDate = query({
   args: {
@@ -74,10 +75,10 @@ export const listTrending = query({
       .withIndex("by_status", (q) => q.eq("status", "launched"))
       .collect();
 
-    // Base current date anchor: 2026-08-27
-    const todayStr = "2026-08-27";
-    const sevenDaysAgoStr = "2026-08-20";
-    const thirtyDaysAgoStr = "2026-07-28";
+    // Base current date anchor: BASE_DATE (2026-08-28)
+    const todayStr = BASE_DATE;
+    const sevenDaysAgoStr = "2026-08-21";
+    const thirtyDaysAgoStr = "2026-07-29";
     const yearStartStr = "2026-01-01";
 
     if (timeframe === "today") {
@@ -851,7 +852,7 @@ export const update = mutation({
         throw new Error("Promoting a launch requires an active Pro Superuser plan ($99/mo). Please upgrade on the pricing page.");
       }
       patchFields.promotedAt = patchFields.isPromoted ? Date.now() : undefined;
-      patchFields.promoBadgeText = patchFields.isPromoted ? "PRO SPONSORED" : undefined;
+      patchFields.promoBadgeText = patchFields.isPromoted ? PROMO_BADGE_DEFAULT : undefined;
     }
 
     if (makers !== undefined) {
@@ -903,7 +904,7 @@ export const togglePromoteProduct = mutation({
     await ctx.db.patch(product._id, {
       isPromoted: args.isPromoted,
       promotedAt: args.isPromoted ? Date.now() : undefined,
-      promoBadgeText: args.isPromoted ? "PRO SPONSORED" : undefined,
+      promoBadgeText: args.isPromoted ? PROMO_BADGE_DEFAULT : undefined,
     });
 
     return { success: true, isPromoted: args.isPromoted };
@@ -929,7 +930,7 @@ export const publishNow = mutation({
       throw new Error("You do not have permission to launch this product");
     }
 
-    const todayStr = args.launchDate || "2026-08-28";
+    const todayStr = args.launchDate || BASE_DATE;
     await ctx.db.patch(product._id, {
       status: "launched",
       launchDate: todayStr,

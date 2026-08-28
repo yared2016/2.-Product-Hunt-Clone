@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAuth, UserProfile } from "@clerk/nextjs";
+import { useAuth, UserProfile as ClerkUserProfile } from "@clerk/nextjs";
 import { Navbar } from "@/components/Navbar";
 import { MakerBadges } from "@/components/MakerBadges";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -12,8 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/EmptyState";
+import { UserAvatar } from "@/components/UserAvatar";
+import { FormFeedbackToast, InlineFeedbackBadge } from "@/components/FormFeedbackToast";
+import { ROUTES } from "@/lib/constants";
 import {
   User,
   Shield,
@@ -88,32 +91,18 @@ export default function ProfilePage() {
     }
   };
 
-  const getInitials = (n: string) => {
-    return n
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-  };
-
   if (!isSignedIn) {
     return (
       <div className="min-h-[100dvh] bg-background text-foreground flex flex-col">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center p-6">
-          <Card className="p-8 max-w-md text-center flex flex-col items-center gap-4">
-            <User className="size-12 text-orange-500 opacity-60" />
-            <h2 className="text-xl font-bold">Sign in required</h2>
-            <p className="text-sm text-muted-foreground">
-              Please sign in to view and manage your maker profile and account settings.
-            </p>
-            <Link href="/sign-in">
-              <Button className="bg-[#FF6154] hover:bg-[#FF6154]/90 text-white min-h-[42px] px-6 font-semibold">
-                Sign In to Launchpad
-              </Button>
-            </Link>
-          </Card>
+        <main className="flex-1 max-w-md mx-auto flex items-center justify-center p-6 w-full">
+          <EmptyState
+            icon={User}
+            title="Sign in required"
+            description="Please sign in to view and manage your maker profile and account settings."
+            actionLabel="Sign In to Launchpad"
+            actionHref={ROUTES.SIGN_IN}
+          />
         </main>
       </div>
     );
@@ -127,14 +116,12 @@ export default function ProfilePage() {
         {/* Profile Hero Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 sm:pb-8 border-b border-border/80 w-full">
           <div className="flex items-center gap-4 min-w-0">
-            <Avatar className="size-16 sm:size-20 rounded-2xl border-2 border-border shadow-xs shrink-0 bg-muted">
-              {(avatarUrl || profile?.avatarUrl) && (
-                <AvatarImage src={avatarUrl || profile?.avatarUrl} alt={name || "User"} />
-              )}
-              <AvatarFallback className="rounded-2xl font-semibold text-lg bg-muted text-foreground">
-                {getInitials(name || profile?.name || "ME")}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              name={name || profile?.name || "User"}
+              src={avatarUrl || profile?.avatarUrl}
+              size="xl"
+              className="size-16 sm:size-20 rounded-2xl border-2 border-border shadow-xs shrink-0"
+            />
 
             <div className="flex flex-col gap-1 min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
@@ -362,16 +349,12 @@ export default function ProfilePage() {
                       </FieldLabel>
 
                       <div className="flex items-center gap-3.5 pt-1">
-                        <Avatar className="size-14 rounded-2xl border-2 border-border bg-muted shadow-2xs shrink-0">
-                          {avatarUrl ? (
-                            <AvatarImage src={avatarUrl} alt="Custom Avatar Preview" />
-                          ) : profile?.avatarUrl ? (
-                            <AvatarImage src={profile.avatarUrl} alt="Default Avatar" />
-                          ) : null}
-                          <AvatarFallback className="text-xs font-semibold bg-muted text-foreground">
-                            {getInitials(name || "ME")}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          name={name || "ME"}
+                          src={avatarUrl || profile?.avatarUrl}
+                          size="lg"
+                          className="size-14 rounded-2xl border-2 border-border shadow-2xs shrink-0"
+                        />
 
                         <div className="flex-1 min-w-0">
                           <Input
@@ -400,12 +383,7 @@ export default function ProfilePage() {
                   </FieldGroup>
 
                   <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/60 flex-wrap">
-                    {saveSuccess && (
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold border border-emerald-500/30 animate-in fade-in-0 slide-in-from-bottom-2">
-                        <Check className="size-3.5" />
-                        <span>Profile Saved!</span>
-                      </div>
-                    )}
+                    <InlineFeedbackBadge show={saveSuccess} message="Profile Saved!" />
 
                     <Button
                       type="submit"
@@ -423,7 +401,7 @@ export default function ProfilePage() {
             {/* Account & Security (Clerk UserProfile) */}
             <TabsContent value="security">
               <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-border bg-card p-2 sm:p-4">
-                <UserProfile
+                <ClerkUserProfile
                   routing="hash"
                   appearance={{
                     elements: {
@@ -439,17 +417,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Floating Toast Notification (Always visible wherever user scrolls) */}
-        {saveSuccess && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-background/95 backdrop-blur-xl border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-2xl shadow-emerald-500/10 animate-in fade-in-0 slide-in-from-bottom-4">
-            <div className="size-8 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-              <Check className="size-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-xs text-foreground">Profile Saved Successfully</span>
-              <span className="text-[11px] text-muted-foreground">Maker bio & public settings updated</span>
-            </div>
-          </div>
-        )}
+        <FormFeedbackToast show={saveSuccess} message="Profile saved successfully! Maker bio & settings updated." />
       </main>
     </div>
   );

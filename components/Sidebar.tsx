@@ -1,21 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Rocket, Trophy, Sparkles, TrendingUp, Flame, ArrowRight } from "lucide-react";
+import { Rocket, Trophy, TrendingUp, ArrowRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-const CATEGORIES = [
-  "AI",
-  "Developer Tools",
-  "SaaS",
-  "Design Tools",
-  "Productivity",
-  "Marketing",
-  "Crypto",
-  "Open Source",
-];
+import { PRODUCT_CATEGORIES, ROUTES } from "@/lib/constants";
 
 export function Sidebar() {
   return (
@@ -34,8 +24,8 @@ export function Sidebar() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-2">
-          <Link href="/submit" className="block">
-            <Button size="sm" className="w-full bg-[#FF6154] hover:bg-[#FF6154]/90 text-white font-medium gap-1.5 shadow-xs">
+          <Link href={ROUTES.SUBMIT} className="block">
+            <Button size="sm" className="w-full bg-[#FF6154] hover:bg-[#FF6154]/90 text-white font-medium gap-1.5 shadow-xs cursor-pointer">
               <span>Submit a Product</span>
               <ArrowRight data-icon="inline-end" className="size-3.5" />
             </Button>
@@ -52,13 +42,13 @@ export function Sidebar() {
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {CATEGORIES.map((cat) => (
-            <Link key={cat} href={`/categories/${encodeURIComponent(cat.toLowerCase().replace(/\s+/g, "-"))}`}>
+          {PRODUCT_CATEGORIES.map((cat) => (
+            <Link key={cat.slug} href={ROUTES.CATEGORIES(cat.slug)}>
               <Badge
                 variant="outline"
                 className="cursor-pointer text-xs py-1 px-2.5 font-normal hover:bg-orange-500/10 hover:text-orange-600 hover:border-orange-500/40 transition-colors"
               >
-                {cat}
+                {cat.name}
               </Badge>
             </Link>
           ))}
@@ -76,7 +66,7 @@ export function Sidebar() {
             <p className="text-[11px] text-muted-foreground leading-relaxed font-normal">
               Check out top-ranked products of the day, week, and month.
             </p>
-            <Link href="/awards" className="text-xs font-medium text-orange-600 dark:text-orange-400 hover:underline pt-1 inline-flex items-center gap-1">
+            <Link href={ROUTES.AWARDS} className="text-xs font-medium text-orange-600 dark:text-orange-400 hover:underline pt-1 inline-flex items-center gap-1">
               <span>View Leaderboard</span>
               <ArrowRight className="size-3" />
             </Link>

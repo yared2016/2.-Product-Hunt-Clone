@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -14,6 +14,8 @@ import { ProductCardSkeleton } from "@/components/ProductCardSkeleton";
 import { Sidebar } from "@/components/Sidebar";
 import { HomeLeaderboardWidget } from "@/components/HomeLeaderboardWidget";
 import { LaunchCountdown } from "@/components/LaunchCountdown";
+import { EmptyState } from "@/components/EmptyState";
+import { BASE_DATE, ROUTES } from "@/lib/constants";
 import { Card } from "@/components/ui/card";
 import { Rocket, TrendingUp, Flame, Calendar, Sparkles, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,7 +23,7 @@ import { cn } from "@/lib/utils";
 type TrendingTimeframe = "today" | "week" | "month" | "year";
 
 export default function HomePage() {
-  const [selectedDate, setSelectedDate] = useState("2026-08-28");
+  const [selectedDate, setSelectedDate] = useState<string>(BASE_DATE);
   const [selectedFilter, setSelectedFilter] = useState<FeedFilterType>("featured");
   const [trendingTimeframe, setTrendingTimeframe] = useState<TrendingTimeframe>("today");
   const [pendingUpvoteId, setPendingUpvoteId] = useState<string | null>(null);
@@ -55,9 +57,9 @@ export default function HomePage() {
   const upvotedIds = useQuery(api.upvotes.getMyUpvotedProductIds) ?? [];
   const toggleUpvote = useMutation(api.upvotes.toggle);
 
-  const handleUpvote = async (productId: Id<"products">) => {
+  const handleUpvote = useCallback(async (productId: Id<"products">) => {
     if (!isSignedIn) {
-      router.push("/sign-in");
+      router.push(ROUTES.SIGN_IN);
       return;
     }
 
@@ -69,7 +71,7 @@ export default function HomePage() {
     } finally {
       setPendingUpvoteId(null);
     }
-  };
+  }, [isSignedIn, router, toggleUpvote]);
 
   const TRENDING_TIMEFRAMES: Array<{ key: TrendingTimeframe; label: string; icon: string }> = [
     { key: "today", label: "Trending Today", icon: "🔥" },
@@ -161,7 +163,7 @@ export default function HomePage() {
                   </span>
                 ) : (
                   <span>
-                    {selectedDate === "2026-08-28"
+                    {selectedDate === BASE_DATE
                       ? "Today's Launches"
                       : selectedDate === "2026-08-27"
                       ? "Yesterday's Launches"
@@ -193,19 +195,17 @@ export default function HomePage() {
                 <ProductCardSkeleton />
               </div>
             ) : products.length === 0 ? (
-              <Card className="p-12 flex flex-col items-center justify-center text-center gap-3 border-dashed bg-muted/20">
-                <div className="size-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-600">
-                  <Rocket className="size-6 text-orange-500 opacity-80" />
-                </div>
-                <div className="flex flex-col gap-1 max-w-sm">
-                  <h3 className="font-semibold text-base">No launches found</h3>
-                  <p className="text-xs text-muted-foreground font-normal">
-                    {selectedFilter === "trending"
-                      ? `No trending products found for this timeframe. Check out Today's discover feed!`
-                      : `No products were launched on ${selectedDate}. Be the first to launch!`}
-                  </p>
-                </div>
-              </Card>
+              <EmptyState
+                icon={Rocket}
+                title="No launches found"
+                description={
+                  selectedFilter === "trending"
+                    ? "No trending products found for this timeframe. Check out Today's discover feed!"
+                    : `No products were launched on ${selectedDate}. Be the first to launch!`
+                }
+                actionLabel={selectedFilter !== "trending" ? "Submit Product" : undefined}
+                actionHref={selectedFilter !== "trending" ? ROUTES.SUBMIT : undefined}
+              />
             ) : (
               <div className="flex flex-col gap-2.5 sm:gap-3">
                 {products.map((product, idx) => (

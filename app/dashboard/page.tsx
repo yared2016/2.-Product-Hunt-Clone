@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -12,10 +12,15 @@ import { MakerBadges } from "@/components/MakerBadges";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/EmptyState";
+import { UserAvatar } from "@/components/UserAvatar";
+import { PricingBadge } from "@/components/PricingBadge";
+import { ProBadge } from "@/components/ProBadge";
+import { BASE_DATE, ROUTES } from "@/lib/constants";
+import { getInitials } from "@/lib/formatters";
 import {
   Rocket,
   Clock,
@@ -58,15 +63,6 @@ export default function DashboardPage() {
   const [productToDelete, setProductToDelete] = useState<{ id: Id<"products">; name: string } | null>(null);
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("launched");
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-  };
 
   const launchedProducts = products?.filter((p) => p.status === "launched") ?? [];
   const scheduledProducts = products?.filter((p) => p.status === "scheduled") ?? [];
@@ -114,7 +110,7 @@ export default function DashboardPage() {
       setPublishingId(productId);
       await publishNowMutation({
         productId,
-        launchDate: "2026-08-28",
+        launchDate: BASE_DATE,
       });
       setActionSuccessMessage(`Successfully published ${productName} live to Today's feed!`);
       setTimeout(() => setActionSuccessMessage(null), 4000);
@@ -148,18 +144,17 @@ export default function DashboardPage() {
         {/* Dashboard Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 sm:pb-8 border-b border-border/80 w-full">
           <div className="flex items-center gap-3.5 min-w-0">
-            <Avatar className="size-12 sm:size-14 rounded-2xl border border-border shadow-xs shrink-0 bg-muted">
-              {user?.imageUrl && <AvatarImage src={user.imageUrl} alt={user.fullName ?? "User"} />}
-              <AvatarFallback className="rounded-2xl font-semibold text-sm bg-muted text-foreground">
-                {user?.fullName ? getInitials(user.fullName) : "ME"}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              name={user?.fullName ?? "User"}
+              src={user?.imageUrl}
+              size="lg"
+            />
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate">
                   Maker Dashboard
                 </h1>
-                <Link href="/profile">
+                <Link href={ROUTES.PROFILE}>
                   <Badge variant="outline" className="text-[10px] gap-1 hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/30 cursor-pointer font-normal">
                     <User className="size-2.5" />
                     <span>Edit Profile</span>
@@ -173,14 +168,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-            <Link href="/profile">
+            <Link href={ROUTES.PROFILE}>
               <Button variant="outline" size="sm" className="min-h-[40px] gap-1.5 font-normal hover:border-orange-500/50 hover:text-orange-600 dark:hover:text-orange-400 transition-all">
                 <User className="size-4 text-muted-foreground" />
                 <span>My Profile</span>
               </Button>
             </Link>
 
-            <Link href="/submit" className="group">
+            <Link href={ROUTES.SUBMIT} className="group">
               <Button
                 size="sm"
                 className="bg-[#FF6154] hover:bg-[#e04f43] text-white font-semibold gap-2 shadow-xs hover:shadow-md hover:shadow-orange-500/25 min-h-[40px] px-4 text-xs sm:text-sm transition-all duration-200 cursor-pointer active:scale-95 hover:scale-[1.02] ring-0 hover:ring-2 hover:ring-orange-500/30"
@@ -201,15 +196,14 @@ export default function DashboardPage() {
         )}
 
         {!isSignedIn ? (
-          <div className="p-12 text-center border border-dashed border-border rounded-2xl my-8 flex flex-col items-center gap-3">
-            <Rocket className="size-10 text-orange-500 opacity-60" />
-            <h3 className="font-semibold text-base">Sign in to view your dashboard</h3>
-            <p className="text-xs text-muted-foreground max-w-sm font-normal">
-              You need to be logged in to manage your submitted products and drafts.
-            </p>
-            <Link href="/sign-in">
-              <Button className="bg-[#FF6154] text-white font-medium">Sign In</Button>
-            </Link>
+          <div className="my-8">
+            <EmptyState
+              icon={Rocket}
+              title="Sign in to view your dashboard"
+              description="You need to be logged in to manage your submitted products and drafts."
+              actionLabel="Sign In"
+              actionHref={ROUTES.SIGN_IN}
+            />
           </div>
         ) : (
           /* Dashboard Tabs */
@@ -334,18 +328,13 @@ export default function DashboardPage() {
                     <Skeleton className="h-24 w-full rounded-xl" />
                   </div>
                 ) : launchedProducts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-10 sm:p-12 text-center border border-dashed border-border/80 rounded-2xl bg-muted/20 gap-3">
-                    <Rocket className="size-8 text-muted-foreground opacity-50" />
-                    <h4 className="font-semibold text-sm">No launched products yet</h4>
-                    <p className="text-xs text-muted-foreground font-normal">
-                      Ready to share your creation with the world? Launch a product today.
-                    </p>
-                    <Link href="/submit">
-                      <Button size="sm" variant="outline" className="mt-1 font-normal hover:border-orange-500/50 hover:text-orange-600 dark:hover:text-orange-400">
-                        Launch Product
-                      </Button>
-                    </Link>
-                  </div>
+                  <EmptyState
+                    icon={Rocket}
+                    title="No launched products yet"
+                    description="Ready to share your creation with the world? Launch a product today."
+                    actionLabel="Launch Product"
+                    actionHref={ROUTES.SUBMIT}
+                  />
                 ) : (
                   <div className="flex flex-col gap-3">
                     {launchedProducts.map((p) => (
@@ -353,26 +342,21 @@ export default function DashboardPage() {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full">
                           {/* Left Column */}
                           <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <Avatar className="size-11 sm:size-12 rounded-xl border border-border shadow-2xs shrink-0 bg-muted">
-                              {p.logoUrl && <AvatarImage src={p.logoUrl} alt={p.name} />}
-                              <AvatarFallback className="rounded-xl font-semibold text-xs bg-muted text-foreground">
-                                {getInitials(p.name)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar
+                              name={p.name}
+                              src={p.logoUrl}
+                              size="md"
+                              className="size-11 sm:size-12 rounded-xl shrink-0"
+                            />
                             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <Link href={`/products/${p.slug}`} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+                                <Link href={ROUTES.PRODUCT(p.slug)} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                                   <h3 className="font-medium sm:font-semibold text-sm text-foreground truncate hover:underline">{p.name}</h3>
                                 </Link>
                                 {p.isPromoted && (
-                                  <Badge className="text-[10px] py-0 px-2 gap-1 font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white border-0 shadow-2xs">
-                                    <Zap className="size-2.5 fill-current" />
-                                    <span>PRO SPONSORED</span>
-                                  </Badge>
+                                  <ProBadge variant="sponsored" text="PRO SPONSORED" />
                                 )}
-                                <Badge variant="secondary" className="text-[10px] capitalize py-0 px-1.5 font-normal">
-                                  {p.pricing}
-                                </Badge>
+                                <PricingBadge pricing={p.pricing} />
                               </div>
                               <p className="text-xs text-muted-foreground truncate font-normal">{p.tagline}</p>
                               <div className="flex items-center gap-2.5 sm:gap-3.5 text-[11px] text-muted-foreground font-mono pt-0.5 flex-wrap font-normal">
@@ -411,14 +395,14 @@ export default function DashboardPage() {
                               <span>{p.isPromoted ? "Boosted" : "Boost"}</span>
                             </Button>
 
-                            <Link href={`/products/${p.slug}`}>
+                            <Link href={ROUTES.PRODUCT(p.slug)}>
                               <Button variant="outline" size="sm" className="gap-1 min-h-[36px] text-xs font-normal hover:border-orange-500/50 hover:text-orange-600 dark:hover:text-orange-400 transition-all">
                                 <span>View</span>
                                 <ChevronRight className="size-3.5" />
                               </Button>
                             </Link>
 
-                            <Link href={`/products/${p.slug}/edit`}>
+                            <Link href={ROUTES.PRODUCT_EDIT(p.slug)}>
                               <Button variant="outline" size="sm" className="gap-1 min-h-[36px] text-xs border-orange-500/30 text-orange-600 dark:text-orange-400 hover:bg-orange-500/10 font-normal">
                                 <Hammer className="size-3" />
                                 <span>Edit</span>
@@ -449,33 +433,28 @@ export default function DashboardPage() {
                     <Skeleton className="h-24 w-full rounded-xl" />
                   </div>
                 ) : scheduledProducts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-10 sm:p-12 text-center border border-dashed border-border/80 rounded-2xl bg-muted/20 gap-3">
-                    <Clock className="size-8 text-muted-foreground opacity-50" />
-                    <h4 className="font-semibold text-sm">No scheduled launches</h4>
-                    <p className="text-xs text-muted-foreground font-normal">
-                      Schedule a future launch date on the submit page to build anticipation and buzz.
-                    </p>
-                    <Link href="/submit">
-                      <Button size="sm" variant="outline" className="mt-1 font-normal">
-                        Schedule a Launch
-                      </Button>
-                    </Link>
-                  </div>
+                  <EmptyState
+                    icon={Clock}
+                    title="No scheduled launches"
+                    description="Schedule a future launch date on the submit page to build anticipation and buzz."
+                    actionLabel="Schedule a Launch"
+                    actionHref={ROUTES.SUBMIT}
+                  />
                 ) : (
                   <div className="flex flex-col gap-3">
                     {scheduledProducts.map((p) => (
                       <Card key={p._id} className="p-3.5 sm:p-4 border-amber-500/30 bg-amber-500/5">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full">
                           <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <Avatar className="size-11 sm:size-12 rounded-xl border border-border shadow-2xs shrink-0 bg-muted">
-                              {p.logoUrl && <AvatarImage src={p.logoUrl} alt={p.name} />}
-                              <AvatarFallback className="rounded-xl font-semibold text-xs bg-muted text-foreground">
-                                {getInitials(p.name)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar
+                              name={p.name}
+                              src={p.logoUrl}
+                              size="md"
+                              className="size-11 sm:size-12 rounded-xl shrink-0"
+                            />
                             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <Link href={`/products/${p.slug}`} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+                                <Link href={ROUTES.PRODUCT(p.slug)} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                                   <h3 className="font-medium sm:font-semibold text-sm text-foreground truncate hover:underline">{p.name}</h3>
                                 </Link>
                                 <Badge variant="accent" className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-normal">
@@ -506,7 +485,7 @@ export default function DashboardPage() {
                               <span>Publish Live Now (Test Launch)</span>
                             </Button>
 
-                            <Link href={`/products/${p.slug}/edit`}>
+                            <Link href={ROUTES.PRODUCT_EDIT(p.slug)}>
                               <Button variant="outline" size="sm" className="gap-1 min-h-[36px] text-xs font-normal hover:border-orange-500/50 hover:text-orange-600 dark:hover:text-orange-400 transition-all">
                                 <Hammer className="size-3" />
                                 <span>Edit</span>
@@ -537,33 +516,28 @@ export default function DashboardPage() {
                     <Skeleton className="h-24 w-full rounded-xl" />
                   </div>
                 ) : draftProducts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-10 sm:p-12 text-center border border-dashed border-border/80 rounded-2xl bg-muted/20 gap-3">
-                    <FileEdit className="size-8 text-muted-foreground opacity-50" />
-                    <h4 className="font-semibold text-sm">No drafts saved</h4>
-                    <p className="text-xs text-muted-foreground font-normal">
-                      Save drafts while preparing your launch materials and screenshots.
-                    </p>
-                    <Link href="/submit">
-                      <Button size="sm" variant="outline" className="mt-1 font-normal hover:border-orange-500/50 hover:text-orange-600 dark:hover:text-orange-400">
-                        Create Draft
-                      </Button>
-                    </Link>
-                  </div>
+                  <EmptyState
+                    icon={FileEdit}
+                    title="No drafts saved"
+                    description="Save drafts while preparing your launch materials and screenshots."
+                    actionLabel="Create Draft"
+                    actionHref={ROUTES.SUBMIT}
+                  />
                 ) : (
                   <div className="flex flex-col gap-3">
                     {draftProducts.map((p) => (
                       <Card key={p._id} className="p-3.5 sm:p-4">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full">
                           <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <Avatar className="size-11 sm:size-12 rounded-xl border border-border shrink-0 bg-muted">
-                              {p.logoUrl && <AvatarImage src={p.logoUrl} alt={p.name} />}
-                              <AvatarFallback className="text-xs font-semibold bg-muted text-foreground">
-                                {getInitials(p.name)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar
+                              name={p.name}
+                              src={p.logoUrl}
+                              size="md"
+                              className="size-11 sm:size-12 rounded-xl shrink-0"
+                            />
                             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <Link href={`/products/${p.slug}/edit`} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+                                <Link href={ROUTES.PRODUCT_EDIT(p.slug)} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                                   <h3 className="font-medium sm:font-semibold text-sm truncate hover:underline">{p.name}</h3>
                                 </Link>
                                 <Badge variant="secondary" className="text-[10px] font-mono font-normal">
@@ -593,7 +567,7 @@ export default function DashboardPage() {
                               <span>Launch Live Now</span>
                             </Button>
 
-                            <Link href={`/products/${p.slug}/edit`}>
+                            <Link href={ROUTES.PRODUCT_EDIT(p.slug)}>
                               <Button variant="outline" size="sm" className="gap-1 min-h-[36px] text-xs font-normal hover:border-orange-500/50 hover:text-orange-600 dark:hover:text-orange-400 transition-all">
                                 <Hammer className="size-3" />
                                 <span>Edit Draft</span>
@@ -723,17 +697,17 @@ export default function DashboardPage() {
                         {launchedProducts.map((p) => (
                           <Card key={p._id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <Avatar className="size-10 rounded-xl border border-border shrink-0">
-                                {p.logoUrl && <AvatarImage src={p.logoUrl} alt={p.name} />}
-                                <AvatarFallback className="text-xs font-semibold">{getInitials(p.name)}</AvatarFallback>
-                              </Avatar>
+                              <UserAvatar
+                                name={p.name}
+                                src={p.logoUrl}
+                                size="sm"
+                                className="size-10 rounded-xl shrink-0"
+                              />
                               <div className="flex flex-col min-w-0">
                                 <div className="flex items-center gap-2">
                                   <span className="font-semibold text-sm text-foreground truncate">{p.name}</span>
                                   {p.isPromoted && (
-                                    <Badge className="text-[9px] py-0 px-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold border-0">
-                                      ⚡ PRO SPONSORED
-                                    </Badge>
+                                    <ProBadge variant="sponsored" text="PRO SPONSORED" />
                                   )}
                                 </div>
                                 <span className="text-xs text-muted-foreground truncate font-normal">{p.tagline}</span>

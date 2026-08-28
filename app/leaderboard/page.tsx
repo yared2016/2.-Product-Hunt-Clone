@@ -14,8 +14,12 @@ import { MonthSelectDropdown } from "@/components/MonthSelectDropdown";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UserAvatar } from "@/components/UserAvatar";
+import { PricingBadge } from "@/components/PricingBadge";
+import { ProBadge } from "@/components/ProBadge";
+import { EmptyState } from "@/components/EmptyState";
+import { BASE_DATE, ROUTES } from "@/lib/constants";
 import {
   Trophy,
   Crown,
@@ -33,7 +37,7 @@ import { cn } from "@/lib/utils";
 type TimeframeType = "daily" | "weekly" | "monthly" | "all_time" | "makers";
 
 const DAILY_PRESETS = [
-  { key: "2026-08-28", label: "Today", sublabel: "Friday" },
+  { key: BASE_DATE, label: "Today", sublabel: "Friday" },
   { key: "2026-08-27", label: "Yesterday", sublabel: "Thursday" },
   { key: "2026-08-26", label: "Wednesday", sublabel: "Aug 26" },
   { key: "2026-08-25", label: "Tuesday", sublabel: "Aug 25" },
@@ -48,8 +52,8 @@ const MONTHLY_PRESETS = [
 
 export default function LeaderboardPage() {
   const [timeframe, setTimeframe] = useState<TimeframeType>("daily");
-  const [selectedDaily, setSelectedDaily] = useState("2026-08-28");
-  const [selectedMonthly, setSelectedMonthly] = useState("2026-08");
+  const [selectedDaily, setSelectedDaily] = useState<string>(BASE_DATE);
+  const [selectedMonthly, setSelectedMonthly] = useState<string>("2026-08");
   const [pendingUpvoteId, setPendingUpvoteId] = useState<string | null>(null);
 
   const router = useRouter();
@@ -85,7 +89,7 @@ export default function LeaderboardPage() {
 
   const handleUpvote = async (productId: Id<"products">) => {
     if (!isSignedIn) {
-      router.push("/sign-in");
+      router.push(ROUTES.SIGN_IN);
       return;
     }
 
@@ -98,14 +102,6 @@ export default function LeaderboardPage() {
       setPendingUpvoteId(null);
     }
   };
-
-  const getInitials = (n: string) =>
-    n
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
 
   const products = leaderboard?.products ?? [];
   const firstPlace = products[0];
@@ -261,12 +257,12 @@ export default function LeaderboardPage() {
                         </div>
 
                         {/* Maker Avatar */}
-                        <Avatar className="size-11 sm:size-12 rounded-2xl border border-border/80 shrink-0 bg-muted shadow-2xs">
-                          {maker.avatarUrl && <AvatarImage src={maker.avatarUrl} alt={maker.name} />}
-                          <AvatarFallback className="text-xs font-semibold bg-gradient-to-br from-orange-500/15 to-amber-500/15 text-orange-600 dark:text-orange-400">
-                            {getInitials(maker.name || "MK")}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          name={maker.name || "Maker"}
+                          src={maker.avatarUrl}
+                          size="md"
+                          className="size-11 sm:size-12 rounded-2xl shrink-0"
+                        />
 
                         {/* Maker Info */}
                         <div className="flex flex-col min-w-0 flex-1">
@@ -309,13 +305,11 @@ export default function LeaderboardPage() {
                   <Skeleton className="h-20 w-full rounded-xl" />
                 </div>
               ) : products.length === 0 ? (
-                <Card className="p-12 flex flex-col items-center justify-center text-center gap-3 border-dashed">
-                  <Trophy className="size-10 text-muted-foreground opacity-40" />
-                  <h3 className="font-semibold text-base">No launches recorded for this period</h3>
-                  <p className="text-xs text-muted-foreground max-w-sm font-normal">
-                    There are no published products for this timeframe. Select another date or month above.
-                  </p>
-                </Card>
+                <EmptyState
+                  icon={Trophy}
+                  title="No launches recorded for this period"
+                  description="There are no published products for this timeframe. Select another date or month above."
+                />
               ) : (
                 <>
                   {/* TOP 3 PODIUM: #1 IN CENTER ELEVATED HIGHER, #2 ON LEFT, #3 ON RIGHT */}
@@ -345,15 +339,15 @@ export default function LeaderboardPage() {
                               <span>#2 Finalist</span>
                             </span>
 
-                            <Avatar className="size-14 sm:size-16 rounded-2xl border-2 border-border shadow-sm bg-muted shrink-0 transition-transform duration-200 group-hover:scale-105">
-                              {secondPlace.logoUrl && <AvatarImage src={secondPlace.logoUrl} alt={secondPlace.name} className="object-cover" />}
-                              <AvatarFallback className="rounded-2xl font-semibold text-lg bg-muted text-foreground">
-                                {getInitials(secondPlace.name)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar
+                              name={secondPlace.name}
+                              src={secondPlace.logoUrl}
+                              size="xl"
+                              className="size-14 sm:size-16 rounded-2xl border-2 border-border shadow-sm shrink-0 transition-transform duration-200 group-hover:scale-105"
+                            />
 
                             <div className="flex flex-col gap-1.5 w-full flex-1 justify-center">
-                              <Link href={`/products/${secondPlace.slug}`} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+                              <Link href={ROUTES.PRODUCT(secondPlace.slug)} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                                 <h3 className="font-semibold text-base sm:text-lg truncate text-foreground line-clamp-1">{secondPlace.name}</h3>
                               </Link>
                               <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed px-1 font-normal">{secondPlace.tagline}</p>
@@ -377,7 +371,7 @@ export default function LeaderboardPage() {
                                 <span className={cn(
                                   "px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold",
                                   upvotedIds.includes(secondPlace._id) ? "bg-black/20 text-white" : "bg-muted text-foreground"
-                                )}>
+                                  )}>
                                   {secondPlace.upvoteCount}
                                 </span>
                               </Button>
@@ -395,15 +389,15 @@ export default function LeaderboardPage() {
                               <span>#1 Champion</span>
                             </span>
 
-                            <Avatar className="size-16 sm:size-20 rounded-2xl border-2 border-amber-500/60 shadow-md bg-muted shrink-0 transition-transform duration-200 group-hover:scale-105">
-                              {firstPlace.logoUrl && <AvatarImage src={firstPlace.logoUrl} alt={firstPlace.name} className="object-cover" />}
-                              <AvatarFallback className="rounded-2xl font-semibold text-xl bg-muted text-foreground">
-                                {getInitials(firstPlace.name)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar
+                              name={firstPlace.name}
+                              src={firstPlace.logoUrl}
+                              size="xl"
+                              className="size-16 sm:size-20 rounded-2xl border-2 border-amber-500/60 shadow-md shrink-0 transition-transform duration-200 group-hover:scale-105"
+                            />
 
                             <div className="flex flex-col gap-1.5 w-full flex-1 justify-center">
-                              <Link href={`/products/${firstPlace.slug}`} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+                              <Link href={ROUTES.PRODUCT(firstPlace.slug)} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                                 <h3 className="font-semibold text-lg sm:text-xl text-foreground truncate line-clamp-1">{firstPlace.name}</h3>
                               </Link>
                               <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed px-1 sm:px-2 font-normal">{firstPlace.tagline}</p>
@@ -445,15 +439,15 @@ export default function LeaderboardPage() {
                               <span>#3 Finalist</span>
                             </span>
 
-                            <Avatar className="size-14 sm:size-16 rounded-2xl border-2 border-border shadow-sm bg-muted shrink-0 transition-transform duration-200 group-hover:scale-105">
-                              {thirdPlace.logoUrl && <AvatarImage src={thirdPlace.logoUrl} alt={thirdPlace.name} className="object-cover" />}
-                              <AvatarFallback className="rounded-2xl font-semibold text-lg bg-muted text-foreground">
-                                {getInitials(thirdPlace.name)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar
+                              name={thirdPlace.name}
+                              src={thirdPlace.logoUrl}
+                              size="xl"
+                              className="size-14 sm:size-16 rounded-2xl border-2 border-border shadow-sm shrink-0 transition-transform duration-200 group-hover:scale-105"
+                            />
 
                             <div className="flex flex-col gap-1.5 w-full flex-1 justify-center">
-                              <Link href={`/products/${thirdPlace.slug}`} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+                              <Link href={ROUTES.PRODUCT(thirdPlace.slug)} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                                 <h3 className="font-semibold text-base sm:text-lg truncate text-foreground line-clamp-1">{thirdPlace.name}</h3>
                               </Link>
                               <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed px-1 font-normal">{thirdPlace.tagline}</p>
@@ -509,21 +503,19 @@ export default function LeaderboardPage() {
                                   #{p.rank}
                                 </span>
 
-                                <Avatar className="size-11 sm:size-12 rounded-xl border border-border shrink-0 bg-muted group-hover:scale-105 transition-transform duration-200 shadow-2xs">
-                                  {p.logoUrl && <AvatarImage src={p.logoUrl} alt={p.name} />}
-                                  <AvatarFallback className="text-xs font-semibold bg-muted text-foreground">
-                                    {getInitials(p.name)}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <UserAvatar
+                                  name={p.name}
+                                  src={p.logoUrl}
+                                  size="md"
+                                  className="size-11 sm:size-12 rounded-xl shrink-0 group-hover:scale-105 transition-transform duration-200"
+                                />
 
                                 <div className="flex flex-col min-w-0 flex-1">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <Link href={`/products/${p.slug}`}>
+                                    <Link href={ROUTES.PRODUCT(p.slug)}>
                                       <h4 className="font-medium sm:font-semibold text-sm text-foreground truncate group-hover:text-orange-600 dark:group-hover:text-orange-400 hover:underline transition-colors">{p.name}</h4>
                                     </Link>
-                                    <Badge variant="secondary" className="text-[10px] capitalize py-0 px-1.5 font-normal hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/30 transition-colors">
-                                      {p.pricing}
-                                    </Badge>
+                                    <PricingBadge pricing={p.pricing} />
                                   </div>
                                   <p className="text-xs text-muted-foreground truncate font-normal">{p.tagline}</p>
                                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono pt-0.5 font-normal">
@@ -535,7 +527,7 @@ export default function LeaderboardPage() {
                               </div>
 
                               <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
-                                <Link href={`/products/${p.slug}`}>
+                                <Link href={ROUTES.PRODUCT(p.slug)}>
                                   <Button variant="outline" size="sm" className="text-xs min-h-[36px] font-normal hover:border-orange-500/50 hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 active:scale-95 transition-all cursor-pointer">
                                     <span>View</span>
                                   </Button>

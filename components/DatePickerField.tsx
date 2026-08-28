@@ -10,6 +10,7 @@ import {
   CalendarCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BASE_DATE } from "@/lib/constants";
 
 interface DatePickerFieldProps {
   value: string; // "YYYY-MM-DD"
@@ -52,7 +53,7 @@ export function DatePickerField({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Today base date
-  const todayStr = "2026-08-28";
+  const todayStr = BASE_DATE;
 
   // Active view date state
   const initialDate = value ? new Date(value + "T12:00:00") : new Date(todayStr + "T12:00:00");

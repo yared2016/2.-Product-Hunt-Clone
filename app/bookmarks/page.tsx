@@ -11,8 +11,11 @@ import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/EmptyState";
+import { UserAvatar } from "@/components/UserAvatar";
+import { PricingBadge } from "@/components/PricingBadge";
+import { ROUTES } from "@/lib/constants";
 import {
   Dialog,
   DialogContent,
@@ -93,31 +96,18 @@ export default function BookmarksPage() {
     }
   };
 
-  const getInitials = (n: string) =>
-    n
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-
   if (!isSignedIn) {
     return (
       <div className="min-h-[100dvh] bg-background text-foreground flex flex-col">
         <Navbar />
-        <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-16 flex flex-col items-center justify-center text-center gap-4">
-          <div className="size-16 rounded-2xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
-            <Bookmark className="size-8" />
-          </div>
-          <h1 className="text-2xl font-bold">Sign in to view your bookmarks</h1>
-          <p className="text-sm text-muted-foreground max-w-md">
-            Save products, organize tools into curated stacks, and track your favorite launches across devices.
-          </p>
-          <Link href="/sign-in">
-            <Button className="bg-[#FF6154] hover:bg-[#FF6154]/90 text-white min-h-[42px] px-6">
-              Sign In to Continue
-            </Button>
-          </Link>
+        <main className="flex-1 max-w-md mx-auto flex items-center justify-center p-6 w-full">
+          <EmptyState
+            icon={Bookmark}
+            title="Sign in to view your bookmarks"
+            description="Save products, organize tools into curated stacks, and track your favorite launches across devices."
+            actionLabel="Sign In to Continue"
+            actionHref={ROUTES.SIGN_IN}
+          />
         </main>
       </div>
     );
@@ -232,23 +222,13 @@ export default function BookmarksPage() {
               <Skeleton className="h-20 w-full rounded-2xl" />
             </div>
           ) : bookmarks.length === 0 ? (
-            <Card className="p-12 flex flex-col items-center justify-center text-center gap-3 border-dashed bg-muted/20">
-              <div className="size-12 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-600">
-                <Bookmark className="size-6 text-orange-500 opacity-80 fill-current" />
-              </div>
-              <div className="flex flex-col gap-1 max-w-sm">
-                <h3 className="font-semibold text-base">No saved products here yet</h3>
-                <p className="text-xs text-muted-foreground font-normal">
-                  Browse the daily feeds and click the bookmark icon to save products into your personal stacks.
-                </p>
-              </div>
-              <Link href="/">
-                <Button size="sm" className="bg-[#FF6154] hover:bg-[#FF6154]/90 text-white gap-1.5 mt-2 font-medium">
-                  <span>Explore Daily Launches</span>
-                  <ArrowRight className="size-3.5" />
-                </Button>
-              </Link>
-            </Card>
+            <EmptyState
+              icon={Bookmark}
+              title="No saved products here yet"
+              description="Browse the daily feeds and click the bookmark icon to save products into your personal stacks."
+              actionLabel="Explore Daily Launches"
+              actionHref={ROUTES.HOME}
+            />
           ) : (
             <div className="flex flex-col gap-3">
               {bookmarks.map(({ bookmarkId, product, collection }) => {
@@ -259,23 +239,21 @@ export default function BookmarksPage() {
                     className="p-3.5 sm:p-4 hover:border-border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                      <Avatar className="size-11 sm:size-13 rounded-xl border border-border shrink-0 bg-muted">
-                        {product.logoUrl && <AvatarImage src={product.logoUrl} alt={product.name} />}
-                        <AvatarFallback className="text-xs font-semibold bg-muted text-foreground">
-                          {getInitials(product.name)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar
+                        name={product.name}
+                        src={product.logoUrl}
+                        size="md"
+                        className="size-11 sm:size-13 rounded-xl shrink-0"
+                      />
 
                       <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Link href={`/products/${product.slug}`} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+                          <Link href={ROUTES.PRODUCT(product.slug)} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                             <h4 className="font-medium sm:font-semibold text-sm sm:text-base text-foreground truncate hover:underline">
                               {product.name}
                             </h4>
                           </Link>
-                          <Badge variant="secondary" className="text-[10px] capitalize py-0 px-1.5 font-normal">
-                            {product.pricing}
-                          </Badge>
+                          <PricingBadge pricing={product.pricing} />
                           {collection && (
                             <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-orange-600 dark:text-orange-400 border-orange-500/30 bg-orange-500/5 font-normal">
                               📁 {collection.name}
@@ -307,7 +285,7 @@ export default function BookmarksPage() {
                         <span className="hidden sm:inline">Remove</span>
                       </Button>
 
-                      <Link href={`/products/${product.slug}`}>
+                      <Link href={ROUTES.PRODUCT(product.slug)}>
                         <Button variant="outline" size="sm" className="text-xs min-h-[36px] font-normal hover:border-orange-500/50 hover:text-orange-600 dark:hover:text-orange-400 transition-all">
                           <span>View</span>
                         </Button>

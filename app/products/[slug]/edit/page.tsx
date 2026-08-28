@@ -36,48 +36,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-const AVAILABLE_CATEGORIES = [
-  "AI",
-  "Developer Tools",
-  "SaaS",
-  "Design Tools",
-  "Productivity",
-  "Marketing",
-  "Crypto",
-  "Open Source",
-];
-
-const STANDARD_MAKER_ROLES = [
-  "CEO",
-  "Founder",
-  "Co-Founder",
-  "CTO",
-  "Lead Developer",
-  "Product Designer",
-  "Head of Product",
-  "Marketing & Growth",
-  "Maker",
-];
-
-// Helper to strictly validate website URLs
-const isValidHttpUrl = (str: string): boolean => {
-  const trimmed = str.trim();
-  if (!trimmed) return false;
-  try {
-    const urlString = trimmed.startsWith("http://") || trimmed.startsWith("https://") ? trimmed : `https://${trimmed}`;
-    const url = new URL(urlString);
-    const hostParts = url.hostname.split(".");
-    return (
-      (url.protocol === "http:" || url.protocol === "https:") &&
-      hostParts.length >= 2 &&
-      hostParts[hostParts.length - 1].length >= 2 &&
-      !url.hostname.includes(" ")
-    );
-  } catch {
-    return false;
-  }
-};
+import { BASE_DATE, CATEGORY_NAMES, STANDARD_MAKER_ROLES, ROUTES } from "@/lib/constants";
+import { isValidUrl, formatWebsiteUrl, getInitials } from "@/lib/formatters";
+import { FormFeedbackToast, InlineFeedbackBadge } from "@/components/FormFeedbackToast";
+import { ProBadge } from "@/components/ProBadge";
+import { PricingBadge } from "@/components/PricingBadge";
+import { UserAvatar } from "@/components/UserAvatar";
 
 interface EditPageProps {
   params: Promise<{ slug: string }>;
@@ -233,7 +197,7 @@ export default function EditProductPage({ params }: EditPageProps) {
 
     if (!websiteUrl.trim()) {
       errors.websiteUrl = "Website URL is required.";
-    } else if (!isValidHttpUrl(websiteUrl)) {
+    } else if (!isValidUrl(websiteUrl)) {
       errors.websiteUrl = "Please enter a valid website URL (e.g. https://yourproduct.com).";
     }
 
@@ -255,11 +219,7 @@ export default function EditProductPage({ params }: EditPageProps) {
     try {
       setIsSaving(true);
       const cleanSlug = newSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
-
-      let formattedWebsiteUrl = websiteUrl.trim();
-      if (!formattedWebsiteUrl.startsWith("http://") && !formattedWebsiteUrl.startsWith("https://")) {
-        formattedWebsiteUrl = `https://${formattedWebsiteUrl}`;
-      }
+      const formattedWebsiteUrl = formatWebsiteUrl(websiteUrl);
 
       await updateProductMutation({
         productId: product._id,
@@ -305,10 +265,10 @@ export default function EditProductPage({ params }: EditPageProps) {
       setIsPublishing(true);
       await publishNowMutation({
         productId: product._id,
-        launchDate: "2026-08-28",
+        launchDate: BASE_DATE,
       });
       setStatus("launched");
-      setLaunchDate("2026-08-28");
+      setLaunchDate(BASE_DATE);
       setSaveSuccess(true);
       toast.success("Product published live!", {
         description: `"${product.name}" is now live on Today's leaderboard and discover feed.`,
@@ -723,17 +683,19 @@ export default function EditProductPage({ params }: EditPageProps) {
                 {taggedMakers.length > 0 && (
                   <div className="flex flex-col gap-2 pt-3">
                     {taggedMakers.map((m) => {
-                      const isCustom = !STANDARD_MAKER_ROLES.includes(m.role);
+                      const isCustom = !STANDARD_MAKER_ROLES.includes(m.role as (typeof STANDARD_MAKER_ROLES)[number]);
                       return (
                         <div
                           key={m._id}
                           className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border border-border/80 bg-muted/20 hover:border-orange-500/40 transition-all"
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <Avatar className="size-9 rounded-full border border-border bg-muted shrink-0">
-                              {m.avatarUrl && <AvatarImage src={m.avatarUrl} alt={m.name} />}
-                              <AvatarFallback className="text-xs font-semibold">{m.name[0]}</AvatarFallback>
-                            </Avatar>
+                            <UserAvatar
+                              name={m.name}
+                              src={m.avatarUrl}
+                              size="sm"
+                              className="size-9 rounded-full shrink-0"
+                            />
                             <div className="flex flex-col min-w-0">
                               <span className="text-xs sm:text-sm font-medium text-foreground truncate">
                                 {m.name}
@@ -831,7 +793,7 @@ export default function EditProductPage({ params }: EditPageProps) {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {AVAILABLE_CATEGORIES.map((cat) => {
+                  {CATEGORY_NAMES.map((cat) => {
                     const isSelected = selectedCategories.includes(cat);
                     return (
                       <button
@@ -862,7 +824,7 @@ export default function EditProductPage({ params }: EditPageProps) {
 
             <FieldGroup>
               <Field>
-                <FieldLabel>Product Status</FieldLabel>
+                <FieldLabel>Current Status</FieldLabel>
                 <div className="grid grid-cols-3 gap-3">
                   {(["draft", "scheduled", "launched"] as const).map((s) => (
                     <button
@@ -888,14 +850,14 @@ export default function EditProductPage({ params }: EditPageProps) {
                   <DatePickerField
                     value={launchDate}
                     onChange={setLaunchDate}
-                    minDate="2026-08-28"
+                    minDate={BASE_DATE}
                     allowFuture={true}
                   />
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setLaunchDate("2026-08-28")}
+                    onClick={() => setLaunchDate(BASE_DATE)}
                     className="text-xs cursor-pointer font-normal h-10 px-3.5"
                   >
                     Set to Today (Aug 28)
@@ -947,25 +909,22 @@ export default function EditProductPage({ params }: EditPageProps) {
             </FieldGroup>
           </Card>
 
-          {/* Form Actions */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-4 border-t border-border/80">
+          {/* Bottom Action Footer */}
+          <div className="flex items-center justify-between gap-4 pt-4 border-t border-border/80">
             <Button
               type="button"
               variant="destructive"
+              size="sm"
               onClick={() => setShowDeleteConfirm(true)}
-              className="gap-1.5 cursor-pointer"
+              className="gap-1.5 cursor-pointer font-normal"
             >
-              <Trash2 className="size-4" />
+              <Trash2 className="size-3.5" />
               <span>Delete Product</span>
             </Button>
 
-            <div className="flex items-center gap-3 justify-end flex-wrap">
-              {saveSuccess && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold border border-emerald-500/30 animate-in fade-in-0 slide-in-from-bottom-2">
-                  <Check className="size-3.5" />
-                  <span>Changes Saved!</span>
-                </div>
-              )}
+            <div className="flex items-center gap-3">
+              {/* Save Success Indicator */}
+              <InlineFeedbackBadge show={saveSuccess} message="Changes Saved!" />
 
               <Link href={`/products/${product.slug}`}>
                 <Button variant="ghost" type="button" className="cursor-pointer">
@@ -986,17 +945,7 @@ export default function EditProductPage({ params }: EditPageProps) {
         </form>
 
         {/* Floating Toast Notification (Always visible wherever user scrolls) */}
-        {saveSuccess && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-background/95 backdrop-blur-xl border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 shadow-2xl shadow-emerald-500/10 animate-in fade-in-0 slide-in-from-bottom-4">
-            <div className="size-8 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-              <Check className="size-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-xs text-foreground">Changes Saved Successfully</span>
-              <span className="text-[11px] text-muted-foreground">Product listing updated live</span>
-            </div>
-          </div>
-        )}
+        <FormFeedbackToast show={saveSuccess} message="Changes saved successfully! Product updated live." />
 
         {/* Delete Confirmation Modal */}
         {showDeleteConfirm && (

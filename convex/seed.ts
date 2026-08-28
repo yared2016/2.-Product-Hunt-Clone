@@ -15,6 +15,11 @@ export const clearAllData = mutation({
       "products",
       "categories",
       "users",
+      "launchSubscriptions",
+      "notifications",
+      "collections",
+      "bookmarks",
+      "productUpdates",
     ] as const;
 
     let totalDeleted = 0;
@@ -28,7 +33,155 @@ export const clearAllData = mutation({
 
     return {
       success: true,
-      message: `Cleared all ${totalDeleted} records across all 9 database tables.`,
+      message: `Cleared all ${totalDeleted} records across all database tables.`,
+    };
+  },
+});
+
+export const clearSeedDataKeepRealUsers = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // 1. Identify real users vs seed users
+    const allUsers = await ctx.db.query("users").collect();
+    const realUsers = allUsers.filter(
+      (u) => !u.clerkId.startsWith("seed_") && (u.email.endsWith("@gmail.com") || u.clerkId.startsWith("user_"))
+    );
+    const seedUsers = allUsers.filter(
+      (u) => u.clerkId.startsWith("seed_") || (!u.email.endsWith("@gmail.com") && !u.clerkId.startsWith("user_"))
+    );
+
+    const realUserIds = new Set<Id<"users">>(realUsers.map((u) => u._id));
+
+    // Delete seed users
+    for (const u of seedUsers) {
+      await ctx.db.delete(u._id);
+    }
+
+    // 2. Identify real products vs seed products
+    const allProducts = await ctx.db.query("products").collect();
+    const realProducts = allProducts.filter((p) => realUserIds.has(p.submitterId));
+    const seedProducts = allProducts.filter((p) => !realUserIds.has(p.submitterId));
+    const realProductIds = new Set<Id<"products">>(realProducts.map((p) => p._id));
+
+    // Delete seed products
+    for (const p of seedProducts) {
+      await ctx.db.delete(p._id);
+    }
+
+    // 3. Clean productImages
+    const allImages = await ctx.db.query("productImages").collect();
+    for (const img of allImages) {
+      if (!realProductIds.has(img.productId)) {
+        await ctx.db.delete(img._id);
+      }
+    }
+
+    // 4. Clean productMakers
+    const allMakers = await ctx.db.query("productMakers").collect();
+    for (const m of allMakers) {
+      if (!realProductIds.has(m.productId) || !realUserIds.has(m.userId)) {
+        await ctx.db.delete(m._id);
+      }
+    }
+
+    // 5. Clean productUpvotes
+    const allUpvotes = await ctx.db.query("productUpvotes").collect();
+    for (const up of allUpvotes) {
+      if (!realProductIds.has(up.productId) || !realUserIds.has(up.userId)) {
+        await ctx.db.delete(up._id);
+      }
+    }
+
+    // 6. Clean comments
+    const allComments = await ctx.db.query("comments").collect();
+    const remainingCommentIds = new Set<Id<"comments">>();
+    for (const c of allComments) {
+      if (!realProductIds.has(c.productId) || !realUserIds.has(c.authorId)) {
+        await ctx.db.delete(c._id);
+      } else {
+        remainingCommentIds.add(c._id);
+      }
+    }
+
+    // 7. Clean commentUpvotes
+    const allCommentUpvotes = await ctx.db.query("commentUpvotes").collect();
+    for (const cu of allCommentUpvotes) {
+      if (!remainingCommentIds.has(cu.commentId) || !realUserIds.has(cu.userId)) {
+        await ctx.db.delete(cu._id);
+      }
+    }
+
+    // 8. Clean awards
+    const allAwards = await ctx.db.query("awards").collect();
+    for (const a of allAwards) {
+      if (!realProductIds.has(a.productId)) {
+        await ctx.db.delete(a._id);
+      }
+    }
+
+    // 9. Clean launchSubscriptions
+    const allSubs = await ctx.db.query("launchSubscriptions").collect();
+    for (const s of allSubs) {
+      if (!realProductIds.has(s.productId) || !realUserIds.has(s.userId)) {
+        await ctx.db.delete(s._id);
+      }
+    }
+
+    // 10. Clean notifications
+    const allNotifs = await ctx.db.query("notifications").collect();
+    for (const n of allNotifs) {
+      if (!realUserIds.has(n.recipientId)) {
+        await ctx.db.delete(n._id);
+      }
+    }
+
+    // 11. Clean bookmarks
+    const allBookmarks = await ctx.db.query("bookmarks").collect();
+    for (const b of allBookmarks) {
+      if (!realProductIds.has(b.productId) || !realUserIds.has(b.userId)) {
+        await ctx.db.delete(b._id);
+      }
+    }
+
+    // 12. Clean collections
+    const allCollections = await ctx.db.query("collections").collect();
+    for (const col of allCollections) {
+      if (!realUserIds.has(col.userId)) {
+        await ctx.db.delete(col._id);
+      }
+    }
+
+    // 13. Clean productUpdates
+    const allUpdates = await ctx.db.query("productUpdates").collect();
+    for (const pu of allUpdates) {
+      if (!realProductIds.has(pu.productId) || !realUserIds.has(pu.authorId)) {
+        await ctx.db.delete(pu._id);
+      }
+    }
+
+    // 14. Recalculate upvoteCount and commentCount on real products
+    for (const p of realProducts) {
+      const actualUpvotes = await ctx.db
+        .query("productUpvotes")
+        .withIndex("by_product", (q) => q.eq("productId", p._id))
+        .collect();
+      const actualComments = await ctx.db
+        .query("comments")
+        .withIndex("by_product", (q) => q.eq("productId", p._id))
+        .collect();
+
+      await ctx.db.patch(p._id, {
+        upvoteCount: actualUpvotes.length,
+        commentCount: actualComments.length,
+      });
+    }
+
+    return {
+      success: true,
+      deletedSeedUsersCount: seedUsers.length,
+      preservedRealUsers: realUsers.map((u) => ({ id: u._id, name: u.name, email: u.email })),
+      deletedSeedProductsCount: seedProducts.length,
+      preservedRealProducts: realProducts.map((p) => ({ id: p._id, name: p.name, slug: p.slug })),
     };
   },
 });

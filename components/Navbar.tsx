@@ -226,6 +226,7 @@ export function Navbar() {
                             userButtonPopoverActionButton: "hover:bg-muted/80 text-foreground transition-colors",
                             userButtonPopoverActionButtonText: "text-foreground font-medium text-xs",
                             userButtonPopoverActionButtonIcon: "text-muted-foreground",
+                            userButtonPopoverActionButton__manageAccount: "hidden",
                           },
                         }}
                       >

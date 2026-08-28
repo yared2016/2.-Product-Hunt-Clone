@@ -127,23 +127,23 @@ export function Navbar() {
             <button
               type="button"
               onClick={openCommandPalette}
-              className="hidden lg:flex items-center justify-between gap-3 h-9 px-3 text-xs text-muted-foreground bg-muted/50 hover:bg-muted border border-border/80 rounded-xl transition-all w-52 xl:w-64 cursor-pointer group/search shadow-2xs hover:border-orange-500/40"
+              className="hidden xl:flex items-center justify-between gap-2.5 h-9 px-3 text-xs text-muted-foreground bg-muted/50 hover:bg-muted border border-border/80 rounded-xl transition-all w-40 2xl:w-52 cursor-pointer group/search shadow-2xs hover:border-orange-500/40"
               aria-label="Search Launchpad"
             >
               <div className="flex items-center gap-2 truncate font-normal">
                 <Search className="size-3.5 shrink-0 group-hover/search:text-orange-500 transition-colors" />
                 <span className="truncate">Search products...</span>
               </div>
-              <kbd className="pointer-events-none hidden h-4.5 select-none items-center gap-1 rounded-md border border-border/80 bg-background/80 px-1.5 font-mono text-[9px] font-medium opacity-100 xl:inline-flex shrink-0 shadow-2xs">
+              <kbd className="pointer-events-none hidden h-4.5 select-none items-center gap-1 rounded-md border border-border/80 bg-background/80 px-1.5 font-mono text-[9px] font-medium opacity-100 2xl:inline-flex shrink-0 shadow-2xs">
                 ⌘K
               </kbd>
             </button>
 
-            {/* Quick Search Icon Button (Mobile) */}
+            {/* Quick Search Icon Button (Mobile & Tablet) */}
             <button
               type="button"
               onClick={openCommandPalette}
-              className="lg:hidden size-8 sm:size-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-500/10 transition-colors shrink-0 cursor-pointer active:scale-95"
+              className="xl:hidden size-8 sm:size-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-500/10 transition-colors shrink-0 cursor-pointer active:scale-95"
               aria-label="Search"
             >
               <Search className="size-4" />
@@ -159,11 +159,11 @@ export function Navbar() {
                   <ProBadge variant="crown" text="PRO" />
                 </Link>
               ) : (
-                <Link href={ROUTES.UPGRADE} className="hidden md:inline-flex shrink-0">
+                <Link href={ROUTES.UPGRADE} className="hidden lg:inline-flex shrink-0">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="gap-1.5 text-xs text-orange-600 dark:text-orange-400 hover:bg-orange-500/10 min-h-[34px] sm:min-h-[36px] font-semibold transition-all hover:scale-105 cursor-pointer"
+                    className="gap-1.5 text-xs text-orange-600 dark:text-orange-400 hover:bg-orange-500/10 min-h-[34px] sm:min-h-[36px] font-semibold transition-all hover:scale-105 cursor-pointer px-2 sm:px-2.5"
                   >
                     <Zap className="size-3.5 fill-current" />
                     <span>Upgrade</span>
@@ -179,7 +179,7 @@ export function Navbar() {
             <Link href={ROUTES.SUBMIT} className="shrink-0">
               <Button
                 size="sm"
-                className="bg-gradient-to-r from-orange-500 via-[#FF6154] to-amber-500 hover:from-orange-600 hover:to-orange-500 text-white font-medium shadow-[0_2px_10px_rgba(255,97,84,0.3)] hover:shadow-[0_4px_16px_rgba(255,97,84,0.45)] hover:scale-[1.03] active:scale-95 transition-all min-h-[34px] sm:min-h-[36px] px-3 sm:px-3.5 text-xs sm:text-sm cursor-pointer gap-1.5"
+                className="bg-gradient-to-r from-orange-500 via-[#FF6154] to-amber-500 hover:from-orange-600 hover:to-orange-500 text-white font-medium shadow-[0_2px_10px_rgba(255,97,84,0.3)] hover:shadow-[0_4px_16px_rgba(255,97,84,0.45)] hover:scale-[1.03] active:scale-95 transition-all min-h-[34px] sm:min-h-[36px] px-2.5 sm:px-3.5 text-xs sm:text-sm cursor-pointer gap-1.5"
               >
                 <Plus className="size-3.5" />
                 <span className="hidden xs:inline sm:inline">Submit Launch</span>
@@ -193,21 +193,21 @@ export function Navbar() {
               ) : (
                 <>
                   <SignedOut>
-                    <div className="hidden sm:flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <Link href={ROUTES.SIGN_IN}>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-muted-foreground hover:text-foreground min-h-[36px] text-xs cursor-pointer font-normal"
+                          className="text-muted-foreground hover:text-foreground min-h-[34px] sm:min-h-[36px] text-xs cursor-pointer font-medium px-2 sm:px-3"
                         >
                           Sign In
                         </Button>
                       </Link>
-                      <Link href={ROUTES.SIGN_UP}>
+                      <Link href={ROUTES.SIGN_UP} className="hidden 2xl:inline-flex">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="min-h-[36px] text-xs cursor-pointer font-normal"
+                          className="min-h-[34px] sm:min-h-[36px] text-xs cursor-pointer font-medium px-2.5 sm:px-3"
                         >
                           Sign Up
                         </Button>

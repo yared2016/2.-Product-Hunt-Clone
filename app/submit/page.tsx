@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -28,6 +29,8 @@ import {
   Gift,
   CheckCircle2,
   Sparkles,
+  Zap,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +79,8 @@ const isValidHttpUrl = (str: string): boolean => {
 export default function SubmitPage() {
   const router = useRouter();
   const { isSignedIn } = useAuth();
+  const profile = useQuery(api.users.getMyProfile);
+  const isPro = Boolean(profile?.isPro || profile?.plan === "pro");
 
   // Form State
   const [name, setName] = useState("");
@@ -87,6 +92,7 @@ export default function SubmitPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>(["AI"]);
   const [videoUrl, setVideoUrl] = useState("");
   const [launchDate, setLaunchDate] = useState("2026-08-28");
+  const [isPromoted, setIsPromoted] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [promoDiscount, setPromoDiscount] = useState("");
 
@@ -315,6 +321,7 @@ export default function SubmitPage() {
         })),
         status,
         launchDate,
+        isPromoted: Boolean(isPro && isPromoted),
         promoCode: promoCode.trim() || undefined,
         promoDiscount: promoDiscount.trim() || undefined,
       });
@@ -904,7 +911,7 @@ export default function SubmitPage() {
             <Card className="p-6">
               <div className="flex items-center gap-2 pb-4 mb-4 border-b border-border/60">
                 <span className="flex size-6 items-center justify-center rounded-full bg-[#FF6154] text-white text-xs font-semibold">6</span>
-                <h2 className="font-semibold text-base">Launch Date & Schedule</h2>
+                <h2 className="font-semibold text-base">Launch Date & Pro Boost</h2>
               </div>
 
               <FieldGroup>
@@ -932,6 +939,48 @@ export default function SubmitPage() {
                     Launches go live immediately on the chosen date and compete on that day&apos;s leaderboard.
                   </FieldDescription>
                 </Field>
+
+                {/* Pro Superuser Boost Block */}
+                <div className="mt-4 p-4 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-card to-card flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <div className="size-7 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                        <Zap className="size-4 fill-current" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
+                          <span>Top of Feed Boost (Sponsored Placement)</span>
+                          <Badge className="text-[10px] py-0 px-1.5 bg-amber-500 text-white font-bold border-0">PRO</Badge>
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground font-normal">
+                          Push your listing to #1 on daily rankings with a radiant gold badge.
+                        </p>
+                      </div>
+                    </div>
+
+                    {isPro ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsPromoted(!isPromoted)}
+                        className={cn(
+                          "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none active:scale-95 shadow-xs border",
+                          isPromoted
+                            ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-500 shadow-amber-500/20"
+                            : "border-border bg-background text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {isPromoted ? "⚡ Boost Enabled" : "Enable Boost"}
+                      </button>
+                    ) : (
+                      <Link href="/upgrade">
+                        <Button size="sm" className="bg-gradient-to-r from-orange-500 via-[#FF6154] to-amber-500 text-white text-xs font-semibold shadow-xs hover:shadow-md cursor-pointer gap-1.5">
+                          <Crown className="size-3.5 text-amber-200" />
+                          <span>Unlock with Pro ($99/mo)</span>
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
               </FieldGroup>
             </Card>
           </div>
@@ -946,7 +995,12 @@ export default function SubmitPage() {
               </div>
 
               <div className="flex flex-col gap-4">
-                <div className="flex items-start gap-3.5 p-3 rounded-2xl border border-border/80 bg-muted/20">
+                <div className={cn(
+                  "flex items-start gap-3.5 p-3 rounded-2xl border transition-all",
+                  isPromoted && isPro
+                    ? "border-amber-500/60 bg-gradient-to-r from-amber-500/10 via-card to-card shadow-sm shadow-amber-500/10"
+                    : "border-border/80 bg-muted/20"
+                )}>
                   <Avatar className="size-14 rounded-2xl border border-border shadow-xs bg-muted shrink-0">
                     {logoPreview && <AvatarImage src={logoPreview} alt="Logo" />}
                     <AvatarFallback className="text-sm font-semibold bg-muted text-muted-foreground">
@@ -959,6 +1013,12 @@ export default function SubmitPage() {
                       <span className="font-medium sm:font-semibold text-sm text-foreground truncate">
                         {name || "Your Product Name"}
                       </span>
+                      {isPromoted && isPro && (
+                        <Badge className="text-[9px] py-0 px-1.5 font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
+                          <Zap className="size-2.5 fill-current mr-0.5" />
+                          <span>PRO SPONSORED</span>
+                        </Badge>
+                      )}
                       <Badge variant="secondary" className="text-[10px] capitalize px-1.5 py-0 font-normal">
                         {pricing}
                       </Badge>

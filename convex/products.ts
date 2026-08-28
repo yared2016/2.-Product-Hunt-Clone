@@ -19,8 +19,13 @@ export const listByDate = query({
       products = products.filter((p) => p.isFeatured);
     }
 
-    // Sort by upvotes (or velocity if trending)
-    products.sort((a, b) => b.upvoteCount - a.upvoteCount);
+    // Sort: Promoted (Pro Boosted) products first, then by upvoteCount descending
+    products.sort((a, b) => {
+      const aProm = a.isPromoted ? 1 : 0;
+      const bProm = b.isPromoted ? 1 : 0;
+      if (bProm !== aProm) return bProm - aProm;
+      return b.upvoteCount - a.upvoteCount;
+    });
 
     // Enrich with logo URL and submitter info
     return await Promise.all(
@@ -93,8 +98,13 @@ export const listTrending = query({
       products = products.filter((p) => p.launchDate >= yearStartStr);
     }
 
-    // Sort by upvoteCount descending
-    products.sort((a, b) => b.upvoteCount - a.upvoteCount);
+    // Sort: Promoted (Pro Boosted) first, then by upvoteCount descending
+    products.sort((a, b) => {
+      const aProm = a.isPromoted ? 1 : 0;
+      const bProm = b.isPromoted ? 1 : 0;
+      if (bProm !== aProm) return bProm - aProm;
+      return b.upvoteCount - a.upvoteCount;
+    });
     const topTrending = products.slice(0, limit);
 
     return await Promise.all(
@@ -248,11 +258,15 @@ export const listByCategory = query({
       products = products.filter((p) => p.pricing === args.pricing);
     }
 
-    if (args.sortBy === "newest") {
-      products.sort((a, b) => b.createdAt - a.createdAt);
-    } else {
-      products.sort((a, b) => b.upvoteCount - a.upvoteCount);
-    }
+    products.sort((a, b) => {
+      const aProm = a.isPromoted ? 1 : 0;
+      const bProm = b.isPromoted ? 1 : 0;
+      if (bProm !== aProm) return bProm - aProm;
+      if (args.sortBy === "newest") {
+        return b.createdAt - a.createdAt;
+      }
+      return b.upvoteCount - a.upvoteCount;
+    });
 
     const enrichedProducts = await Promise.all(
       products.map(async (product) => {
@@ -296,7 +310,7 @@ export const getLeaderboard = query({
       v.literal("monthly"),
       v.literal("all_time")
     ),
-    period: v.optional(v.string()), // e.g. "2026-08-27" for daily, "2026-08" for monthly
+    period: v.optional(v.string()), // e.g. "2026-08-28" for daily, "2026-08" for monthly
   },
   handler: async (ctx, args) => {
     let products = await ctx.db
@@ -316,8 +330,11 @@ export const getLeaderboard = query({
     }
     // all_time uses all launched products
 
-    // Sort by upvotes descending, then comments descending
+    // Sort: Promoted (Pro Boosted) products first, then by upvotes descending, then comments descending
     products.sort((a, b) => {
+      const aProm = a.isPromoted ? 1 : 0;
+      const bProm = b.isPromoted ? 1 : 0;
+      if (bProm !== aProm) return bProm - aProm;
       if (b.upvoteCount !== a.upvoteCount) {
         return b.upvoteCount - a.upvoteCount;
       }
@@ -621,6 +638,7 @@ export const create = mutation({
     launchDate: v.string(),
     promoCode: v.optional(v.string()),
     promoDiscount: v.optional(v.string()),
+    isPromoted: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await getOrCreateCurrentUser(ctx);
@@ -661,6 +679,7 @@ export const create = mutation({
     }
 
     const finalMakerIds = makerEntries.map((e) => e.userId);
+    const shouldPromote = Boolean(args.isPromoted && (user.isPro || user.plan === "pro"));
 
     const productId = await ctx.db.insert("products", {
       name: args.name.trim(),
@@ -681,6 +700,9 @@ export const create = mutation({
       upvoteCount: 0,
       commentCount: 0,
       isFeatured: false,
+      isPromoted: shouldPromote,
+      promotedAt: shouldPromote ? Date.now() : undefined,
+      promoBadgeText: shouldPromote ? "PRO SPONSORED" : undefined,
       promoCode: args.promoCode?.trim() || undefined,
       promoDiscount: args.promoDiscount?.trim() || undefined,
       createdAt: Date.now(),
@@ -790,6 +812,9 @@ export const update = mutation({
     launchDate: v.optional(v.string()),
     promoCode: v.optional(v.string()),
     promoDiscount: v.optional(v.string()),
+    isPromoted: v.optional(v.boolean()),
+    promotedAt: v.optional(v.number()),
+    promoBadgeText: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await getOrCreateCurrentUser(ctx);
@@ -821,6 +846,14 @@ export const update = mutation({
 
     const { productId, makers, ...patchFields } = args;
 
+    if (patchFields.isPromoted !== undefined) {
+      if (patchFields.isPromoted && !user.isPro && user.plan !== "pro") {
+        throw new Error("Promoting a launch requires an active Pro Superuser plan ($99/mo). Please upgrade on the pricing page.");
+      }
+      patchFields.promotedAt = patchFields.isPromoted ? Date.now() : undefined;
+      patchFields.promoBadgeText = patchFields.isPromoted ? "PRO SPONSORED" : undefined;
+    }
+
     if (makers !== undefined) {
       const existingMakers = await ctx.db
         .query("productMakers")
@@ -845,6 +878,38 @@ export const update = mutation({
   },
 });
 
+export const togglePromoteProduct = mutation({
+  args: {
+    productId: v.id("products"),
+    isPromoted: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getOrCreateCurrentUser(ctx);
+    const product = await ctx.db.get(args.productId);
+    if (!product) {
+      throw new Error("Product not found");
+    }
+
+    const isSubmitter = product.submitterId === user._id;
+    const isMaker = (product.makerIds ?? []).includes(user._id);
+    if (!isSubmitter && !isMaker) {
+      throw new Error("You do not have permission to promote this product");
+    }
+
+    if (args.isPromoted && !user.isPro && user.plan !== "pro") {
+      throw new Error("Promoting a product requires an active Pro Superuser plan ($99/mo). Please upgrade on the pricing page.");
+    }
+
+    await ctx.db.patch(product._id, {
+      isPromoted: args.isPromoted,
+      promotedAt: args.isPromoted ? Date.now() : undefined,
+      promoBadgeText: args.isPromoted ? "PRO SPONSORED" : undefined,
+    });
+
+    return { success: true, isPromoted: args.isPromoted };
+  },
+});
+
 export const publishNow = mutation({
   args: {
     productId: v.id("products"),
@@ -864,7 +929,7 @@ export const publishNow = mutation({
       throw new Error("You do not have permission to launch this product");
     }
 
-    const todayStr = args.launchDate || "2026-08-27";
+    const todayStr = args.launchDate || "2026-08-28";
     await ctx.db.patch(product._id, {
       status: "launched",
       launchDate: todayStr,

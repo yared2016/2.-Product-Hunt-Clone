@@ -247,3 +247,45 @@ export const getMakerLeaderboard = query({
     }));
   },
 });
+
+// ─── Subscription & Clerk Billing Integrations ─────────────────
+export const syncSubscription = mutation({
+  args: {
+    plan: v.union(v.literal("free"), v.literal("pro")),
+  },
+  handler: async (ctx, args) => {
+    const user = await getOrCreateCurrentUser(ctx);
+    const isPro = args.plan === "pro";
+    await ctx.db.patch(user._id, {
+      plan: args.plan,
+      isPro,
+      proSubscribedAt: isPro ? (user.proSubscribedAt || Date.now()) : undefined,
+    });
+    return { success: true, plan: args.plan, isPro };
+  },
+});
+
+export const upgradeToPro = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getOrCreateCurrentUser(ctx);
+    await ctx.db.patch(user._id, {
+      plan: "pro",
+      isPro: true,
+      proSubscribedAt: Date.now(),
+    });
+    return { success: true, plan: "pro", isPro: true };
+  },
+});
+
+export const downgradeToFree = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getOrCreateCurrentUser(ctx);
+    await ctx.db.patch(user._id, {
+      plan: "free",
+      isPro: false,
+    });
+    return { success: true, plan: "free", isPro: false };
+  },
+});

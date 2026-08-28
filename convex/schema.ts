@@ -98,6 +98,9 @@ export default defineSchema({
     upvoteCount: v.number(),                 // denormalized for fast sort
     commentCount: v.number(),                // denormalized
     isFeatured: v.boolean(),                 // staff pick / featured
+    isPromoted: v.optional(v.boolean()),     // Pro Superuser Boost / Sponsored launch
+    promotedAt: v.optional(v.number()),      // epoch ms when promoted
+    promoBadgeText: v.optional(v.string()),  // e.g. "PRO", "SPONSORED"
     promoCode: v.optional(v.string()),       // optional launch discount code
     promoDiscount: v.optional(v.string()),   // e.g. "30% OFF", "FREE FOR 3 MONTHS"
     createdAt: v.number(),
@@ -131,6 +134,9 @@ export default defineSchema({
     avatarUrl: v.optional(v.string()),
     bio: v.optional(v.string()),
     websiteUrl: v.optional(v.string()),
+    plan: v.optional(v.union(v.literal("free"), v.literal("pro"))), // Clerk Billing SaaS Plan
+    isPro: v.optional(v.boolean()),       // Pro Superuser status ($99/mo)
+    proSubscribedAt: v.optional(v.number()), // epoch ms when upgraded
     createdAt: v.number(),        // epoch ms
   })
     .index("by_clerkId", ["clerkId"])

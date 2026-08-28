@@ -13,6 +13,7 @@ import {
   ChevronUp,
   MessageSquare,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,8 @@ interface ProductCardProps {
     upvoteCount: number;
     commentCount: number;
     isFeatured?: boolean;
+    isPromoted?: boolean;
+    promoBadgeText?: string;
     status: "draft" | "scheduled" | "launched";
     launchDate: string;
     logoUrl?: string | null;
@@ -100,7 +103,12 @@ export function ProductCard({
     <div className="w-full">
       <Card
         onClick={handleCardClick}
-        className="p-3 sm:p-4 hover:border-orange-500/40 hover:shadow-xs transition-all bg-card/70 hover:bg-card cursor-pointer group active:scale-[0.998]"
+        className={cn(
+          "p-3 sm:p-4 transition-all cursor-pointer group active:scale-[0.998]",
+          product.isPromoted
+            ? "border-amber-500/60 dark:border-amber-500/50 bg-gradient-to-r from-amber-500/10 via-card to-card shadow-sm shadow-amber-500/10 hover:border-amber-500"
+            : "hover:border-orange-500/40 hover:shadow-xs bg-card/70 hover:bg-card"
+        )}
       >
         <div className="flex items-center justify-between gap-3 sm:gap-4 w-full">
           {/* Left Column: Rank + Logo + Content */}
@@ -136,6 +144,15 @@ export function ProductCard({
                 >
                   {product.name}
                 </Link>
+
+                {/* Pro Sponsored Boost Badge */}
+                {product.isPromoted && (
+                  <Badge className="text-[10px] py-0 px-2 gap-1 font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white border-0 shadow-2xs animate-in fade-in-0">
+                    <Zap className="size-2.5 fill-current" />
+                    <span>{product.promoBadgeText || "PRO SPONSORED"}</span>
+                  </Badge>
+                )}
+
                 {product.isFeatured && (
                   <Badge variant="accent" className="text-[10px] py-0 px-1.5 gap-0.5 font-medium hidden xs:inline-flex">
                     <Sparkles className="size-2.5" />

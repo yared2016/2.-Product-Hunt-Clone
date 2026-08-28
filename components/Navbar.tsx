@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -21,6 +23,8 @@ import {
   User,
   LayoutDashboard,
   ChevronRight,
+  Zap,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +32,9 @@ export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const profile = useQuery(api.users.getMyProfile);
+  const isPro = Boolean(profile?.isPro || profile?.plan === "pro");
 
   useEffect(() => {
     setMounted(true);
@@ -158,6 +165,29 @@ export function Navbar() {
           {/* Notification Bell */}
           {mounted && <NotificationBell />}
 
+          {/* Pro Badge or Upgrade CTA */}
+          {mounted && (
+            isPro ? (
+              <Link href="/upgrade" className="hidden sm:inline-flex shrink-0">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs font-bold shadow-2xs hover:scale-105 transition-all">
+                  <Crown className="size-3.5 text-amber-500 fill-amber-500" />
+                  <span>PRO</span>
+                </div>
+              </Link>
+            ) : (
+              <Link href="/upgrade" className="hidden md:inline-flex shrink-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs text-orange-600 dark:text-orange-400 hover:bg-orange-500/10 min-h-[34px] sm:min-h-[36px] font-semibold transition-all hover:scale-105 cursor-pointer"
+                >
+                  <Zap className="size-3.5 fill-current" />
+                  <span>Upgrade</span>
+                </Button>
+              </Link>
+            )
+          )}
+
           {/* Theme Switcher */}
           <ThemeToggle />
 
@@ -216,6 +246,11 @@ export function Navbar() {
                       }}
                     >
                       <UserButton.MenuItems>
+                        <UserButton.Link
+                          label={isPro ? "Manage Pro Superuser" : "⚡ Upgrade to Pro ($99/mo)"}
+                          labelIcon={<Crown className="size-4 text-amber-500" />}
+                          href="/upgrade"
+                        />
                         <UserButton.Link
                           label="Maker Dashboard"
                           labelIcon={<LayoutDashboard className="size-4 text-muted-foreground" />}
@@ -348,6 +383,25 @@ export function Navbar() {
                   <span>Hall of Fame</span>
                 </div>
                 <ChevronRight className="size-4 text-muted-foreground/50" />
+              </Link>
+
+              <Link
+                href="/upgrade"
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors min-h-[44px]",
+                  pathname === "/upgrade"
+                    ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 font-semibold"
+                    : "text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/15 font-semibold"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <Crown className="size-4 text-amber-500 fill-amber-500" />
+                  <span>{isPro ? "Pro Superuser Active" : "Upgrade to Pro ($99/mo)"}</span>
+                </div>
+                <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-amber-500/40 text-amber-600">
+                  {isPro ? "PRO" : "$99"}
+                </Badge>
               </Link>
             </div>
 

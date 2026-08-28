@@ -11,6 +11,7 @@ import { Navbar } from "@/components/Navbar";
 import { DatePickerField } from "@/components/DatePickerField";
 import { AiLaunchAssistant } from "@/components/AiLaunchAssistant";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  Zap,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -87,6 +90,8 @@ export default function EditProductPage({ params }: EditPageProps) {
 
   const product = useQuery(api.products.getBySlug, { slug });
   const currentUser = useQuery(api.users.getCurrentUser);
+  const profile = useQuery(api.users.getMyProfile);
+  const isPro = Boolean(profile?.isPro || profile?.plan === "pro");
 
   const updateProductMutation = useMutation(api.products.update);
   const publishNowMutation = useMutation(api.products.publishNow);
@@ -102,6 +107,7 @@ export default function EditProductPage({ params }: EditPageProps) {
   const [pricing, setPricing] = useState<"free" | "freemium" | "paid">("freemium");
   const [selectedCategories, setSelectedCategories] = useState<string[]>(["AI"]);
   const [launchDate, setLaunchDate] = useState("2026-08-28");
+  const [isPromoted, setIsPromoted] = useState(false);
   const [status, setStatus] = useState<"draft" | "scheduled" | "launched">("launched");
   const [showAiAssistant, setShowAiAssistant] = useState(false);
 
@@ -147,6 +153,7 @@ export default function EditProductPage({ params }: EditPageProps) {
       setPricing(product.pricing);
       setSelectedCategories(product.categories);
       setLaunchDate(product.launchDate);
+      setIsPromoted(Boolean(product.isPromoted));
       setStatus(product.status);
 
       if (product.makers && product.makers.length > 0) {
@@ -265,6 +272,7 @@ export default function EditProductPage({ params }: EditPageProps) {
         pricing,
         categories: selectedCategories,
         launchDate,
+        isPromoted: Boolean(isPro && isPromoted),
         status,
         makers: taggedMakers.map((m) => ({
           userId: m._id,
@@ -894,6 +902,48 @@ export default function EditProductPage({ params }: EditPageProps) {
                   </Button>
                 </div>
               </Field>
+
+              {/* Pro Superuser Boost Block */}
+              <div className="mt-2 p-4 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-card to-card flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="size-7 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                      <Zap className="size-4 fill-current" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
+                        <span>Top of Feed Boost (Sponsored Placement)</span>
+                        <Badge className="text-[10px] py-0 px-1.5 bg-amber-500 text-white font-bold border-0">PRO</Badge>
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground font-normal">
+                        Push this product to #1 on daily rankings with a radiant gold badge.
+                      </p>
+                    </div>
+                  </div>
+
+                  {isPro ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsPromoted(!isPromoted)}
+                      className={cn(
+                        "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer select-none active:scale-95 shadow-xs border",
+                        isPromoted
+                          ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-500 shadow-amber-500/20"
+                          : "border-border bg-background text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {isPromoted ? "⚡ Boost Enabled" : "Enable Boost"}
+                    </button>
+                  ) : (
+                    <Link href="/upgrade">
+                      <Button size="sm" className="bg-gradient-to-r from-orange-500 via-[#FF6154] to-amber-500 text-white text-xs font-semibold shadow-xs hover:shadow-md cursor-pointer gap-1.5">
+                        <Crown className="size-3.5 text-amber-200" />
+                        <span>Unlock with Pro ($99/mo)</span>
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
             </FieldGroup>
           </Card>
 

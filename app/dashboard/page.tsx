@@ -34,8 +34,11 @@ import {
   BarChart3,
   ShieldCheck,
   Sparkles,
+  Zap,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   const { isSignedIn } = useAuth();
@@ -43,11 +46,14 @@ export default function DashboardPage() {
 
   const products = useQuery(api.products.listBySubmitter);
   const profile = useQuery(api.users.getMyProfile);
+  const isPro = Boolean(profile?.isPro || profile?.plan === "pro");
 
   const publishNowMutation = useMutation(api.products.publishNow);
   const removeProductMutation = useMutation(api.products.remove);
+  const togglePromoteMutation = useMutation(api.products.togglePromoteProduct);
 
   const [publishingId, setPublishingId] = useState<Id<"products"> | null>(null);
+  const [promotingId, setPromotingId] = useState<Id<"products"> | null>(null);
   const [deletingId, setDeletingId] = useState<Id<"products"> | null>(null);
   const [productToDelete, setProductToDelete] = useState<{ id: Id<"products">; name: string } | null>(null);
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
@@ -65,8 +71,43 @@ export default function DashboardPage() {
   const launchedProducts = products?.filter((p) => p.status === "launched") ?? [];
   const scheduledProducts = products?.filter((p) => p.status === "scheduled") ?? [];
   const draftProducts = products?.filter((p) => p.status === "draft") ?? [];
+  const promotedProducts = products?.filter((p) => p.isPromoted) ?? [];
   const totalUpvotes = launchedProducts.reduce((acc, p) => acc + (p.upvoteCount || 0), 0);
   const totalComments = launchedProducts.reduce((acc, p) => acc + (p.commentCount || 0), 0);
+
+  const handleTogglePromote = async (productId: Id<"products">, currentPromoted: boolean, productName: string) => {
+    if (!isPro) {
+      toast.error("Pro Superuser Required ($99/mo)", {
+        description: "Upgrade to Pro to boost your products to #1 on daily rankings!",
+        action: {
+          label: "Upgrade",
+          onClick: () => window.location.assign("/upgrade"),
+        },
+      });
+      return;
+    }
+
+    try {
+      setPromotingId(productId);
+      const newPromoted = !currentPromoted;
+      await togglePromoteMutation({
+        productId,
+        isPromoted: newPromoted,
+      });
+      if (newPromoted) {
+        toast.success(`⚡ "${productName}" is now Boosted to Top!`, {
+          description: "Your product now appears at the top of daily feeds with radiant PRO badging.",
+        });
+      } else {
+        toast.info(`Boost removed for "${productName}"`);
+      }
+    } catch (err) {
+      console.error("Failed to toggle promotion:", err);
+      toast.error("Failed to update promotion status");
+    } finally {
+      setPromotingId(null);
+    }
+  };
 
   const handlePublishNow = async (productId: Id<"products">, productName: string) => {
     try {
@@ -239,6 +280,19 @@ export default function DashboardPage() {
                   <ShieldCheck className={cn("size-3.5 transition-transform duration-200", activeTab === "badges" ? "text-emerald-500 scale-110" : "text-muted-foreground")} />
                   <span>Milestones & Badges</span>
                 </TabsTrigger>
+
+                <TabsTrigger
+                  value="promotion"
+                  className={cn(
+                    "flex-1 sm:flex-initial gap-2 text-xs sm:text-sm cursor-pointer min-h-[38px] transition-all duration-200",
+                    activeTab === "promotion"
+                      ? "bg-background text-foreground shadow-xs font-semibold ring-1 ring-border/80 border-b-2 border-b-amber-500"
+                      : "text-amber-600 dark:text-amber-400 hover:text-amber-500 hover:bg-amber-500/10 hover:shadow-2xs font-medium"
+                  )}
+                >
+                  <Zap className={cn("size-3.5 transition-transform duration-200", activeTab === "promotion" ? "text-amber-500 scale-110 fill-amber-500" : "text-amber-500")} />
+                  <span>Pro Boosts ({promotedProducts.length})</span>
+                </TabsTrigger>
               </TabsList>
 
               {/* Active Tab View Indicator */}
@@ -251,12 +305,14 @@ export default function DashboardPage() {
                     {activeTab === "drafts" && <FileEdit className="size-3 text-blue-500" />}
                     {activeTab === "analytics" && <BarChart3 className="size-3 text-purple-500" />}
                     {activeTab === "badges" && <ShieldCheck className="size-3 text-emerald-500" />}
+                    {activeTab === "promotion" && <Zap className="size-3 text-amber-500 fill-amber-500" />}
                     <span>
                       {activeTab === "launched" && `Live Launches (${launchedProducts.length})`}
                       {activeTab === "scheduled" && `Scheduled Launches (${scheduledProducts.length})`}
                       {activeTab === "drafts" && `Draft Products (${draftProducts.length})`}
                       {activeTab === "analytics" && "Maker Analytics & Upvote Velocity"}
                       {activeTab === "badges" && "Milestones & Badges Showcase"}
+                      {activeTab === "promotion" && `Pro Superuser Launch Boosts (${promotedProducts.length} Active)`}
                     </span>
                   </span>
                 </div>
@@ -266,6 +322,7 @@ export default function DashboardPage() {
                   {activeTab === "drafts" && "Private drafts saved to your maker account"}
                   {activeTab === "analytics" && "Real-time upvotes, velocity & engagement metrics"}
                   {activeTab === "badges" && "Maker progression milestones & unlocked badges"}
+                  {activeTab === "promotion" && "Manage your active pro-subscription boost slots"}
                 </span>
               </div>
 
@@ -307,6 +364,12 @@ export default function DashboardPage() {
                                 <Link href={`/products/${p.slug}`} className="hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                                   <h3 className="font-medium sm:font-semibold text-sm text-foreground truncate hover:underline">{p.name}</h3>
                                 </Link>
+                                {p.isPromoted && (
+                                  <Badge className="text-[10px] py-0 px-2 gap-1 font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white border-0 shadow-2xs">
+                                    <Zap className="size-2.5 fill-current" />
+                                    <span>PRO SPONSORED</span>
+                                  </Badge>
+                                )}
                                 <Badge variant="secondary" className="text-[10px] capitalize py-0 px-1.5 font-normal">
                                   {p.pricing}
                                 </Badge>
@@ -331,6 +394,23 @@ export default function DashboardPage() {
 
                           {/* Right Actions */}
                           <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={promotingId === p._id}
+                              onClick={() => handleTogglePromote(p._id, Boolean(p.isPromoted), p.name)}
+                              className={cn(
+                                "gap-1 min-h-[36px] text-xs font-semibold cursor-pointer transition-all",
+                                p.isPromoted
+                                  ? "border-amber-500/60 bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
+                                  : "hover:border-amber-500/40 text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400"
+                              )}
+                              title={p.isPromoted ? "Product is boosted to top of feed" : "Boost product with Pro Superuser plan"}
+                            >
+                              <Zap className={cn("size-3.5", p.isPromoted ? "fill-current text-amber-500" : "")} />
+                              <span>{p.isPromoted ? "Boosted" : "Boost"}</span>
+                            </Button>
+
                             <Link href={`/products/${p.slug}`}>
                               <Button variant="outline" size="sm" className="gap-1 min-h-[36px] text-xs font-normal hover:border-orange-500/50 hover:text-orange-600 dark:hover:text-orange-400 transition-all">
                                 <span>View</span>
@@ -556,6 +636,139 @@ export default function DashboardPage() {
                       hasChampionLaunch: launchedProducts.some((p) => p.upvoteCount >= 20),
                     }}
                   />
+                </div>
+              </TabsContent>
+
+              {/* Pro Superuser Promotion Center Tab */}
+              <TabsContent value="promotion">
+                <div className="pt-2 flex flex-col gap-6">
+                  {/* Status Banner */}
+                  <Card className={cn(
+                    "p-5 sm:p-6 border transition-all",
+                    isPro
+                      ? "border-amber-500/50 bg-gradient-to-r from-amber-500/10 via-card to-card shadow-sm"
+                      : "border-border bg-card"
+                  )}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3.5">
+                        <div className={cn(
+                          "size-12 rounded-2xl flex items-center justify-center shrink-0 border",
+                          isPro
+                            ? "bg-gradient-to-br from-amber-500 to-orange-500 text-white border-amber-500 shadow-sm"
+                            : "bg-muted text-muted-foreground border-border"
+                        )}>
+                          {isPro ? <Crown className="size-6 fill-current" /> : <Zap className="size-6" />}
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-base text-foreground">
+                              {isPro ? "Pro Superuser Active" : "Free Community Plan"}
+                            </h3>
+                            <Badge variant={isPro ? "accent" : "outline"} className="text-xs">
+                              {isPro ? "$99 / month" : "$0 / month"}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground font-normal">
+                            {isPro
+                              ? "You have unlimited algorithmic launch boosts to push your products to the top of daily feeds."
+                              : "Upgrade to Pro Superuser to unlock top-of-feed placements and radiant PRO badges."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Link href="/upgrade" className="shrink-0">
+                        <Button
+                          className={cn(
+                            "w-full sm:w-auto font-bold text-xs cursor-pointer shadow-xs gap-1.5",
+                            isPro
+                              ? "bg-muted hover:bg-muted/80 text-foreground border border-border"
+                              : "bg-gradient-to-r from-orange-500 via-[#FF6154] to-amber-500 text-white hover:shadow-orange-500/25"
+                          )}
+                        >
+                          {isPro ? (
+                            <>
+                              <Crown className="size-3.5 text-amber-500 fill-amber-500" />
+                              <span>Manage Billing</span>
+                            </>
+                          ) : (
+                            <>
+                              <Zap className="size-3.5" />
+                              <span>Upgrade to Pro ($99/mo)</span>
+                            </>
+                          )}
+                        </Button>
+                      </Link>
+                    </div>
+                  </Card>
+
+                  {/* Boost Controls List */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-sm text-foreground">
+                        Your Launch Boost Management ({promotedProducts.length} of {launchedProducts.length} Boosted)
+                      </h4>
+                      <Link href="/leaderboard" className="text-xs text-orange-600 dark:text-orange-400 hover:underline">
+                        View Live Leaderboard →
+                      </Link>
+                    </div>
+
+                    {launchedProducts.length === 0 ? (
+                      <div className="p-8 text-center border border-dashed border-border rounded-2xl bg-muted/20">
+                        <p className="text-xs text-muted-foreground font-normal">
+                          You do not have any launched products yet. Launch a product first to enable boost.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {launchedProducts.map((p) => (
+                          <Card key={p._id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <Avatar className="size-10 rounded-xl border border-border shrink-0">
+                                {p.logoUrl && <AvatarImage src={p.logoUrl} alt={p.name} />}
+                                <AvatarFallback className="text-xs font-semibold">{getInitials(p.name)}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-sm text-foreground truncate">{p.name}</span>
+                                  {p.isPromoted && (
+                                    <Badge className="text-[9px] py-0 px-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold border-0">
+                                      ⚡ PRO SPONSORED
+                                    </Badge>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground truncate font-normal">{p.tagline}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-xs font-mono text-muted-foreground">
+                                {p.upvoteCount} upvotes
+                              </span>
+
+                              <Button
+                                size="sm"
+                                disabled={promotingId === p._id}
+                                onClick={() => handleTogglePromote(p._id, Boolean(p.isPromoted), p.name)}
+                                className={cn(
+                                  "text-xs font-bold gap-1.5 cursor-pointer transition-all",
+                                  p.isPromoted
+                                    ? "bg-amber-500 hover:bg-amber-600 text-white shadow-xs"
+                                    : "bg-muted hover:bg-muted/80 text-foreground border border-border"
+                                )}
+                              >
+                                {promotingId === p._id ? (
+                                  <Spinner className="size-3.5" />
+                                ) : (
+                                  <Zap className={cn("size-3.5", p.isPromoted ? "fill-current" : "")} />
+                                )}
+                                <span>{p.isPromoted ? "Boost Active (Top #1)" : "Enable Boost"}</span>
+                              </Button>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>

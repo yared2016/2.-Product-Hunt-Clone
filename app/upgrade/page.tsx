@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useAuth, useUser, PricingTable } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
+import { ClerkPricingTableSafe } from "@/components/ClerkPricingTableSafe";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Navbar } from "@/components/Navbar";
@@ -281,7 +282,7 @@ export default function UpgradePage() {
           </div>
 
           <div className="w-full max-w-3xl rounded-2xl border border-border/80 bg-card p-4 sm:p-6 shadow-sm overflow-hidden">
-            <PricingTable />
+            <ClerkPricingTableSafe isPro={isPro} fallbackPlanAction={handleDevUpgradeToggle} />
           </div>
         </div>
 

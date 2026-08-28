@@ -157,3 +157,12 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Hide Clerk default "Manage account" item in UserButton popover */
+.cl-userButtonPopoverActionButton__manageAccount,
+[data-localization-key="userButton.action__manageAccount"],
+.cl-userButtonPopoverActionButton[data-localization-key="userButton.action__manageAccount"],
+button.cl-userButtonPopoverActionButton:has([data-localization-key="userButton.action__manageAccount"]),
+.cl-userButtonPopoverCustomItems + .cl-userButtonPopoverActionButton__manageAccount {
+  display: none !important;
+}

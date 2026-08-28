@@ -218,6 +218,8 @@ export function Navbar() {
                   <SignedIn>
                     <div className="flex items-center justify-center p-0.5 rounded-full ring-2 ring-orange-500/40 hover:ring-orange-500/70 transition-all shrink-0">
                       <UserButton
+                        userProfileMode="navigation"
+                        userProfileUrl={ROUTES.PROFILE}
                         appearance={{
                           elements: {
                             rootBox: "flex items-center justify-center shrink-0",
@@ -226,7 +228,7 @@ export function Navbar() {
                             userButtonPopoverActionButton: "hover:bg-muted/80 text-foreground transition-colors",
                             userButtonPopoverActionButtonText: "text-foreground font-medium text-xs",
                             userButtonPopoverActionButtonIcon: "text-muted-foreground",
-                            userButtonPopoverActionButton__manageAccount: "hidden",
+                            userButtonPopoverActionButton__manageAccount: "!hidden hidden opacity-0 pointer-events-none h-0 p-0 m-0 overflow-hidden",
                           },
                         }}
                       >

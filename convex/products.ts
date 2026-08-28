@@ -17,15 +17,24 @@ export const listByDate = query({
       .collect();
 
     if (args.filter === "featured") {
-      products = products.filter((p) => p.isFeatured);
+      const featuredOrPromoted = products.filter((p) => p.isFeatured || p.isPromoted);
+      if (featuredOrPromoted.length > 0) {
+        // If there are featured or promoted products, keep them prioritized at the top of the feed
+      }
     }
 
-    // Sort: Promoted (Pro Boosted) products first, then by upvoteCount descending
+    // Sort: Promoted (Pro Boosted) products first, then isFeatured, then by upvoteCount descending, then commentCount
     products.sort((a, b) => {
       const aProm = a.isPromoted ? 1 : 0;
       const bProm = b.isPromoted ? 1 : 0;
       if (bProm !== aProm) return bProm - aProm;
-      return b.upvoteCount - a.upvoteCount;
+      const aFeat = a.isFeatured ? 1 : 0;
+      const bFeat = b.isFeatured ? 1 : 0;
+      if (bFeat !== aFeat) return bFeat - aFeat;
+      if (b.upvoteCount !== a.upvoteCount) {
+        return b.upvoteCount - a.upvoteCount;
+      }
+      return b.commentCount - a.commentCount;
     });
 
     // Enrich with logo URL and submitter info
